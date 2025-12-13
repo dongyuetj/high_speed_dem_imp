@@ -1,0 +1,8 @@
+/xilinx_ip/*
+!/xilinx_ip/*/
+/xilinx_ip/*/*
+!/xilinx_ip/*/*.xci
+!/xilinx_ip/*/*.coe
+*.swp
+*.swo
+*~
