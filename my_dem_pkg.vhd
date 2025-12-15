@@ -36,12 +36,40 @@ package my_dem_pkg is
     type std_logic_array_64 is array (natural range<>) of std_logic_vector(63 downto 0);
 	constant sps	 						: integer := 4; 
 	constant data_width 					: integer := 16; 
-	constant PI_POS 						: signed(15+4 downto 0):="00000110010010001000";
-	constant PI_NEG 						: signed(15+4 downto 0):="11111001101101111000";
-	constant PI_1_4_POS 					: signed(15+4 downto 0):="00000001100100100010";
-	constant PI_1_4_NEG 					: signed(15+4 downto 0):="11111110011011011110";
-	constant PI_3_4_POS 					: signed(15+4 downto 0):="00000100101101100110";
-	constant PI_3_4_NEG 					: signed(15+4 downto 0):="11111011010010011010";
+--	constant PI_POS 						: signed(15+4 downto 0):="00000110010010001000";
+--	constant PI_NEG 						: signed(15+4 downto 0):="11111001101101111000";
+--	constant PI_1_4_POS 					: signed(15+4 downto 0):="00000001100100100010";
+--	constant PI_1_4_NEG 					: signed(15+4 downto 0):="11111110011011011110";
+--	constant PI_3_4_POS 					: signed(15+4 downto 0):="00000100101101100110";
+--	constant PI_3_4_NEG 					: signed(15+4 downto 0):="11111011010010011010";
+	-- pi * 2^13
+	constant PI_POS 						: signed(19 downto 0):=to_signed(25736,20);
+	constant PI_NEG 						: signed(19 downto 0):=to_signed(-25736,20);
+	constant PI_1_4_POS 					: signed(19 downto 0):=to_signed(6434,20);
+	constant PI_1_4_NEG 					: signed(19 downto 0):=to_signed(-6434,20);
+	constant PI_3_4_POS 					: signed(19 downto 0):=to_signed(19302,20);
+	constant PI_3_4_NEG 					: signed(19 downto 0):=to_signed(-19302,20);
+	constant PI_1_2_POS 					: signed(19 downto 0):=to_signed(12868,20);
+	constant PI_1_2_NEG 					: signed(19 downto 0):=to_signed(-12868,20);
+
+    type signed_array_32 is array (natural range<>) of signed(31 downto 0);
+    type signed_array_16 is array (natural range<>) of signed(15 downto 0);
+    type signed_array_20 is array (natural range<>) of signed(19 downto 0);
+	constant PSK8_LUT_I						: signed_array_16(0 to 7):= (to_signed(2000,16),to_signed(1414,16),to_signed(-1414,16),to_signed(0,16),to_signed(1414,16),to_signed(0,16),to_signed(-2000,16),to_signed(-1414,16));
+	constant PSK8_LUT_Q						: signed_array_16(0 to 7):= (to_signed(0,16),to_signed(1414,16),to_signed(1414,16),to_signed(2000,16),to_signed(-1414,16),to_signed(-2000,16),to_signed(0,16),to_signed(-1414,16));
+	constant QAM8_LUT_I						: signed_array_16(0 to 7):= (to_signed(-2449,16),to_signed(-2449,16),to_signed(-816,16),to_signed(-816,16),to_signed(2449,16),to_signed(2449,16),to_signed(816,16),to_signed(816,16)); 
+	constant QAM8_LUT_Q						: signed_array_16(0 to 7):= (to_signed(816,16),to_signed(-816,16),to_signed(816,16),to_signed(-816,16),to_signed(816,16),to_signed(-816,16),to_signed(816,16),to_signed(-816,16));
+	constant QAM16_LUT_I					: signed_array_16(0 to 15):= (to_signed(-1897,16),to_signed(-1897,16),to_signed(-1897,16),to_signed(-1897,16),to_signed(-632,16),to_signed(-632,16),to_signed(-632,16),to_signed(-632,16),to_signed(1897,16),to_signed(1897,16),to_signed(1897,16),to_signed(1897,16),to_signed(632,16),to_signed(632,16),to_signed(632,16),to_signed(632,16));
+	constant QAM16_LUT_Q					: signed_array_16(0 to 15):= (to_signed(1897,16),to_signed(632,16),to_signed(-1897,16),to_signed(-632,16),to_signed(1897,16),to_signed(632,16),to_signed(-1897,16),to_signed(-632,16),to_signed(1897,16),to_signed(632,16),to_signed(-1897,16),to_signed(-632,16),to_signed(1897,16),to_signed(632,16),to_signed(-1897,16),to_signed(-632,16));
+	-- psk8 phase [0,0.7854,2.3562,1.5708,-0.7854,-1.5708,3.1416,-2.3562]
+	-- qam8 phase [2.8198,-2.8198,2.3562,-2.3562,0.3218,-0.3218,0.7854,-0.7854]
+	-- qam16 phase [2.3562, 2.8198 ,-2.3562 ,-2.8198 , 1.8925 , 2.3562 ,-1.8925 ,-2.3562 , 0.7854 , 0.3218 ,-0.7854 ,-0.3218 , 1.2490 , 0.7854 ,-1.2490 ,-0.7854]
+	constant PSK8_PHASE 					: signed_array_20(0 to 7):=( to_signed(0,20), to_signed(6434,20), to_signed(19302,20), to_signed(12868,20), to_signed(-6434,20), to_signed(-12868,20), to_signed(25736,20), to_signed(-19302,20));
+	constant QAM8_PHASE 					: signed_array_20(0 to 7):=( to_signed(23100,20), to_signed(-23100,20), to_signed(19302,20), to_signed(-19302,20), to_signed(2636,20), to_signed(-2636,20), to_signed(6434,20), to_signed(-6434,20));
+	constant QAM16_PHASE					: signed_array_20(0 to 15):=( to_signed(19302,20), to_signed(23100,20), to_signed(-19302,20), to_signed(-23100,20), to_signed(15503,20), to_signed(19302,20), to_signed(-15503,20), to_signed(-19302,20), to_signed(6434,20), to_signed(2636,20), to_signed(-6434,20), to_signed(-2636,20), to_signed(10232,20), to_signed(6434,20), to_signed(-10232,20), to_signed(-6434,20));
+	constant cInd: std_logic_array_4(0 to 15):=	(x"0" ,x"1" ,x"2" ,x"3" ,x"4" ,x"5" ,x"6" ,x"7" ,x"8" ,x"9" ,x"A" ,x"B" ,x"C" ,x"D" ,x"E" ,x"F");
+
+
 	constant snr_data_width					: integer:=8;
 	function LOG2 (x : in integer) return integer;
 end my_dem_pkg;

@@ -20,9 +20,7 @@ entity pll is
 			en_sym		: in std_logic;
 			sym_i		: in std_logic_vector(23 downto 0);
 			sym_q		: in std_logic_vector(23 downto 0);
-			sym_phase   : in std_logic_vector(23 downto 0);
 			sym_sync_en 	: out std_logic:='0';
-			phase_int_o	 	: out std_logic_vector(19 downto 0):=(others=>'0');
 			sym_sync_data_i	: out std_logic_vector(23 downto 0):=(others=>'0');
 			sym_sync_data_q	: out std_logic_vector(23 downto 0):=(others=>'0')
 		);
@@ -54,15 +52,18 @@ architecture arch of pll is
 			 );
 	end component;
 
-	component cos_sin
-		port (
-				 aclk : in std_logic;
-				 aresetn : in std_logic;
-				 s_axis_phase_tvalid : in std_logic;
-				 s_axis_phase_tdata : in std_logic_vector(15 downto 0);
-				 m_axis_dout_tvalid : out std_logic;
-				 m_axis_dout_tdata : out std_logic_vector(31 downto 0)
-			 );
+	component cmp16
+	generic(
+			   data_width : integer := 32;
+			   data_num   : integer := 16
+		   );
+	port(
+			sys_clk			: in std_logic; -- 28.8MHz
+			en				: in std_logic;
+			data_in			: in signed_array_32(data_num-1 downto 0);
+			min_data		: out signed(data_width-1 downto 0):=(others=>'0');
+			min_ind			: out std_logic_vector(LOG2(data_num)-1 downto 0):=(others=>'0')
+		);
 	end component;
 
 	signal phase_valid 						: std_logic:='0';
@@ -100,37 +101,19 @@ architecture arch of pll is
 	signal loop_flt 						: signed(15+4 downto 0):=(others=>'0');
 	signal phase_int 						: signed(15+4 downto 0):=(others=>'0');
 	signal phase_int_wrap 					: signed(15+4 downto 0):=(others=>'0');
+	signal complex_flag 					: std_logic := '1';
+	signal shift_flag 						: std_logic := '0';
+	signal phase_int_tmp					: std_logic_vector(23 downto 0):=(others=>'0'); 
+	signal err_i,err_q						: signed_array_16(15 downto 0):=(others=>(others=>'0'));
+	signal err_i_2,err_q_2					: signed_array_32(15 downto 0):=(others=>(others=>'0'));
+	signal err_sum							: signed_array_32(15 downto 0):=(others=>(others=>'0'));
+	signal min_ind_int 						: integer range 0 to 15:=0;
+	signal min_data							: signed(31 downto 0):=(others=>'0');
+	signal min_ind							: std_logic_vector(3 downto 0):=(others=>'0');
+
 
 	-- QPSK
 	signal iq_sign		: std_logic_vector(1 downto 0):=(others=>'0');
-
-	-- cos/sin table for 8PSK (scaled by 127)
---    type lut_array is array (0 to 7) of signed(7 downto 0);
---    constant COS_LUT : lut_array := (
---        to_signed(127,8),  -- 0°
---        to_signed( 90,8),  -- 45°
---        to_signed(  0,8),  -- 90°
---        to_signed(-90,8),  -- 135°
---        to_signed(-127,8), -- 180°
---        to_signed(-90,8),  -- 225°
---        to_signed(  0,8),  -- 270°
---        to_signed( 90,8)   -- 315°
---    );
---
---    constant SIN_LUT : lut_array := (
---        to_signed(  0,8),  -- 0°
---        to_signed( 90,8),  -- 45°
---        to_signed(127,8),  -- 90°
---        to_signed( 90,8),  -- 135°
---        to_signed(  0,8),  -- 180°
---        to_signed(-90,8),  -- 225°
---        to_signed(-127,8), -- 270°
---        to_signed(-90,8)   -- 315°
---    );
-
-   -- signal metric : array(0 to 7) of signed(23 downto 0);
-   -- signal best_idx : unsigned(2 downto 0);
-
 	attribute mark_debug : string;
 	attribute mark_debug of phase_valid 				: signal is "TRUE";	
 	attribute mark_debug of phase_data 					: signal is "TRUE";	
@@ -165,19 +148,15 @@ architecture arch of pll is
 	attribute mark_debug of phase_int 					: signal is "TRUE";	
 	attribute mark_debug of phase_int_wrap 				: signal is "TRUE";	
 begin
-	phase_int_o	 <= std_logic_vector(phase_int);	
+
+	phase_int_tmp <= std_logic_vector(phase_int(15 downto 0))&"00000000";
+
 	process(sys_clk)
 	begin
 		if rising_edge(sys_clk) then
 			if en_sym ='1' then
 				phase_valid <= '1';	
---				if sym_i(sym_i'high) = '0' then
---					phase_in <= (others=>'0');
---				else
---					phase_in <= PI_POS;
---				end if;
-				--phase_corr  <= std_logic_vector(sym_phase-signed(phase_int(15 downto 0)&"00000000"));
-				phase_data 	<= std_logic_vector(0-signed(phase_int(15 downto 0)&"00000000"));
+				phase_data 	<= std_logic_vector(0-signed(phase_int_tmp));
 				cartesian_data 	<= sym_q & sym_i;
 			else
 				phase_valid <= '0';	
@@ -219,6 +198,8 @@ begin
 				s_axis_cartesian_tvalid <= '0';
 				s_axis_cartesian_tdata <= (others=>'0');
 				phase_in <= (others=>'0');
+				shift_flag <= '0';
+				complex_flag <= '0';
 			else
 				if en_sym_rotate = '1' then
 					if sym_i_rotate = x"000000" then
@@ -228,48 +209,126 @@ begin
 					end if;
 					s_axis_cartesian_tdata(47 downto 24) <= sym_q_rotate;
 					s_axis_cartesian_tvalid <= '1';
-					case sym_type is
-						when "000" => --BPSK
-							case iq_sign(1) is
-								when '0' =>
-									phase_in <= (others=>'0');
-								when '1' =>
-									phase_in <= PI_POS;
-								when others => null;
-							end case;
-						when "001" => --QPSK
-							case iq_sign is
-								when "00" => -- ++
-									phase_in <= PI_1_4_POS;
-								when "01" => -- +-
-									phase_in <= PI_1_4_NEG;
-								when "10" => -- -+ 
-									phase_in <= PI_3_4_POS;
-								when "11" => -- --
-									phase_in <= PI_3_4_NEG;
-								when others => null;
-							end case;
-				--		when "010" => -- OQPSK
-				--			null;
-						when "011" => -- 8PSK
-							null;
-						--	for k in 0 to 7 loop
-						--		metric(k) <= resize(din_i,24) * resize(COS_LUT(k),24) + resize(din_q,24) * resize(SIN_LUT(k),24);
-						--	end loop;
-				--		when "100" => -- pi/4DQPSK
-				--			null;
-				--		when "101" => -- 8QAM
-				--			null;
-				--		when "110" => -- 16QAM
-				--			null;
-						when others => null;
-					end case;
 				else
 					s_axis_cartesian_tvalid <= '0';
 				end if; 
+				case sym_type is
+					when "000" => --BPSK
+						case sym_i_rotate(sym_i_rotate'high) is
+							when '0' =>
+								phase_in <= (others=>'0');
+							when '1' =>
+								phase_in <= PI_POS;
+							when others => null;
+						end case;
+					when "001" => --QPSK
+						case iq_sign is
+							when "00" => -- ++
+								phase_in <= PI_1_4_POS;
+							when "01" => -- +-
+								phase_in <= PI_1_4_NEG;
+							when "10" => -- -+ 
+								phase_in <= PI_3_4_POS;
+							when "11" => -- --
+								phase_in <= PI_3_4_NEG;
+							when others => null;
+						end case;
+					when "010" => -- OQPSK, needs sps * 2
+								  --	complex_flag <= not complex_flag;
+								  --	if complex_flag = '1' then 
+								  --		if signed(sym_q_rotate) >= 0 then
+								  --			phase_in <= PI_1_2_POS;
+								  --		else
+								  --			phase_in <= PI_1_2_NEG;
+								  --		end if;
+								  --	else
+								  --		if signed(sym_i_rotate) >= 0 then
+								  --			phase_in <= (others=>'0');
+								  --		else
+								  --			phase_in <= PI_POS;
+								  --		end if;
+								  --	end if;
+						if abs(signed(sym_i_rotate)) >= abs(signed(sym_q_rotate)) then
+							if signed(sym_i_rotate)>= 0 then
+								phase_in <= (others=>'0'); 
+							else
+								phase_in <= PI_POS;
+							end if;
+						else
+							if signed(sym_q_rotate)>= 0 then
+								phase_in <= PI_1_2_POS;
+							else
+								phase_in <= PI_1_2_NEG;
+							end if;
+						end if;
+					when "011" => -- 8PSK
+						for kk in 0 to 7 loop
+							err_i(kk) <= signed(sym_i_rotate(15 downto 0)) - PSK8_LUT_I(kk);
+							err_q(kk) <= signed(sym_q_rotate(15 downto 0)) - PSK8_LUT_Q(kk);
+							err_i_2(kk) <= err_i(kk) * err_i(kk); 
+							err_q_2(kk) <= err_q(kk) * err_q(kk);
+							err_sum(kk) <= err_i_2(kk) + err_q_2(kk);
+						end loop;
+						err_sum(15 downto 8) <= (others=>x"7FFFFFFF"); 
+					when "100" => -- pi/4DQPSK
+								  --	shift_flag <= not shift_flag;
+								  --	if shift_flag = '0' then
+						if signed(sym_i_rotate) >= 0 and signed(sym_q_rotate) >= 0 then
+							phase_in <= PI_1_4_POS;
+						elsif signed(sym_i_rotate) > 0 and signed(sym_q_rotate) < 0 then
+							phase_in <= PI_1_4_NEG;
+						elsif signed(sym_i_rotate) <= 0 and signed(sym_q_rotate) <= 0 then
+							phase_in <= PI_3_4_NEG;
+						elsif signed(sym_i_rotate) < 0 and  signed(sym_q_rotate)> 0 then
+							phase_in <= PI_3_4_POS;
+						end if;
+						--	else
+						--		if abs(signed(sym_i_rotate)) >= abs(signed(sym_q_rotate)) then
+						--			if signed(sym_i_rotate)>= 0 then
+						--				phase_in <= (others=>'0'); 
+						--			else
+						--				phase_in <= PI_POS;
+						--			end if;
+						--		else
+						--			if signed(sym_q_rotate)>= 0 then
+						--				phase_in <= PI_1_2_POS;
+						--			else
+						--				phase_in <= PI_1_2_NEG;
+						--			end if;
+						--		end if;
+						--	end if;
+					when "101" =>  -- 8QAM
+						for mm in 0 to 7 loop
+							err_i(mm) <= signed(sym_i_rotate(15 downto 0)) - QAM8_LUT_I(mm);
+							err_q(mm) <= signed(sym_q_rotate(15 downto 0)) - QAM8_LUT_Q(mm);
+							err_i_2(mm) <= err_i(mm) * err_i(mm); 
+							err_q_2(mm) <= err_q(mm) * err_q(mm);
+							err_sum(mm) <= err_i_2(mm) + err_q_2(mm);
+						end loop;
+						err_sum(15 downto 8) <= (others=>x"7FFFFFFF"); 
+					when "110" =>  -- 16QAM
+						for nn in 0 to 15 loop
+							err_i(nn) <= signed(sym_i_rotate(15 downto 0)) - QAM16_LUT_I(nn);
+							err_q(nn) <= signed(sym_q_rotate(15 downto 0)) - QAM16_LUT_Q(nn);
+							err_i_2(nn) <= err_i(nn) * err_i(nn); 
+							err_q_2(nn) <= err_q(nn) * err_q(nn);
+							err_sum(nn) <= err_i_2(nn) + err_q_2(nn);
+						end loop;
+					when others => null;
+				end case;
 			end if;
 		end if;
 	end process;
+
+	u_cmp16: cmp16
+	generic map( data_width => 32, data_num   => 16)
+	port map(
+			sys_clk			=> sys_clk,
+			en				=> '1',
+			data_in			=> err_sum,
+			min_data		=> min_data,
+			min_ind			=> min_ind
+		);
 
 	u_atan2: atan2
 	port map(
@@ -281,12 +340,36 @@ begin
 				 m_axis_dout_tdata 			=> ped_data
 			);
 
+	min_ind_int <= to_integer(unsigned(min_ind));
+
 	process(sys_clk)
 	begin
 		if rising_edge(sys_clk) then
 			if ped_valid = '1' then
-				phase_diff	<=  resize(signed(ped_data(23 downto 8)),20) - phase_in;
-				--phase_diff	<=  signed(ped_data(19 downto 0)) - phase_in;
+				case sym_type is
+					-- bpsk
+					when "000" =>
+						phase_diff	<=  resize(signed(ped_data(23 downto 8)),20) - phase_in;
+					-- qpsk
+					when "001" =>
+						phase_diff	<=  resize(signed(ped_data(23 downto 8)),20) - phase_in;
+					-- oqpsk
+					when "010" =>
+						phase_diff	<=  resize(signed(ped_data(23 downto 8)),20) - phase_in;
+					-- 8psk
+					when "011" =>
+						phase_diff	<=  resize(signed(ped_data(23 downto 8)),20) - PSK8_PHASE(min_ind_int);
+					-- pi/4 dqpsk
+					when "100" =>
+						phase_diff	<=  resize(signed(ped_data(23 downto 8)),20) - phase_in;
+					-- 8qam
+					when "101" =>
+						phase_diff	<=  resize(signed(ped_data(23 downto 8)),20) - QAM8_PHASE(min_ind_int);
+					-- 16qam
+					when "110" =>
+						phase_diff	<=  resize(signed(ped_data(23 downto 8)),20) - QAM16_PHASE(min_ind_int);
+					when others => null;
+				end case;
 			end if;
 			phase_diff_valid <= ped_valid;
 			if phase_diff_valid = '1' then

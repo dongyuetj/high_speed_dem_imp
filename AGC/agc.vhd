@@ -18,7 +18,7 @@ entity agc is
 			sys_clk				: in std_logic; -- 28.8MHz
 
 			aresetn 			: in std_logic;
-			start_level  		: in std_logic_vector(31 downto 0);
+			log_ref  			: in std_logic_vector(31 downto 0);
 			wave_in_valid 		: in std_logic;
 			wave_in_i 			: in std_logic_vector(15 downto 0);
 			wave_in_q			: in std_logic_vector(15 downto 0);
@@ -188,8 +188,8 @@ architecture arch of agc is
 --	constant REF 				: std_logic_vector(31 downto 0):="01000110100000000000000000000000";
 	constant ONE 				: std_logic_vector(31 downto 0):=x"3F800000";
 --	constant LOG_REF 			: std_logic_vector(31 downto 0):=x"40F33A93"; -- log(2000)
-	constant LOG_REF 			: std_logic_vector(31 downto 0):=x"408515B5"; -- log(64)
-	constant MAX_EXP_GAIN		: std_logic_vector(31 downto 0):=x"42C80000";  -- 100
+--	constant LOG_REF 			: std_logic_vector(31 downto 0):=x"408515B5"; -- log(64)
+	constant MAX_EXP_GAIN		: std_logic_vector(31 downto 0):=x"43960000";  -- 300
 	
 
 --	constant agcDelayNum		: integer:=256;
@@ -253,7 +253,7 @@ begin
 	port map(
 				sys_clk			=> 	sys_clk			,
 				aresetn 		=> aresetn			,
-				start_level  	=>  start_level		,
+				start_level  	=>  (others=>'0') 		,
 				wave_in_valid 	=> 	wave_in_valid 	,
 				wave_in_i 		=> 	wave_in_i 		,
 				wave_in_q		=> 	wave_in_q		,
@@ -318,7 +318,7 @@ begin
 				aresetn 				=> aresetn,
 				s_axis_a_tvalid 		=> z_log_div2_valid,
 				s_axis_a_tready 		=> open,
-				s_axis_a_tdata 			=> LOG_REF,
+				s_axis_a_tdata 			=> log_ref,
 				s_axis_b_tvalid 		=> z_log_div2_valid,
 				s_axis_b_tready 		=> open,
 				s_axis_b_tdata 			=> z_log_div2,

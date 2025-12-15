@@ -49,9 +49,7 @@ architecture Behavioral of tb_pll is
 			en_sym		: in std_logic;
 			sym_i		: in std_logic_vector(23 downto 0);
 			sym_q		: in std_logic_vector(23 downto 0);
-			sym_phase   : in std_logic_vector(23 downto 0);
 			sym_sync_en 	: out std_logic:='0';
-			phase_int_o	 	: out std_logic_vector(19 downto 0):=(others=>'0');
 			sym_sync_data_i	: out std_logic_vector(23 downto 0):=(others=>'0');
 			sym_sync_data_q	: out std_logic_vector(23 downto 0):=(others=>'0')
 		);
@@ -67,11 +65,10 @@ architecture Behavioral of tb_pll is
 	signal dem_vld 					: std_logic:='0';
 	signal dem_sym 					: std_logic_vector(7 downto 0):= (others=>'0');
 	signal sym_sync_en 				: std_logic:='0';
-	signal phase_int_o	 			: std_logic_vector(19 downto 0):=(others=>'0');
 	signal sym_sync_data_i			: std_logic_vector(23 downto 0):=(others=>'0');
 	signal sym_sync_data_q			: std_logic_vector(23 downto 0):=(others=>'0');
-	file rec_r_i: text open read_mode is "D:\projects\46_high_speed_dem\sim\modelsim\ila_sym_i.txt";
-	file rec_r_q: text open read_mode is "D:\projects\46_high_speed_dem\sim\modelsim\ila_sym_q.txt";
+	file rec_r_i: text open read_mode is "D:\projects\46_high_speed_dem\sim\modelsim\sim_i.txt";
+	file rec_r_q: text open read_mode is "D:\projects\46_high_speed_dem\sim\modelsim\sim_q.txt";
 	file rec_2: text open write_mode is "D:\projects\46_high_speed_dem\sim\modelsim\sync_sym_i.txt"; 
 	file rec_3: text open write_mode is "D:\projects\46_high_speed_dem\sim\modelsim\sync_sym_q.txt"; 
 begin
@@ -146,9 +143,7 @@ begin
 			en_sym			=> sym_vld,
 			sym_i			=> sym_i,
 			sym_q			=> sym_q,
-			sym_phase   	=> (others=>'0') ,
 			sym_sync_en 	=> sym_sync_en,
-			phase_int_o	 	=> phase_int_o,
 			sym_sync_data_i	=> sym_sync_data_i,
 			sym_sync_data_q	=> sym_sync_data_q
 		);
