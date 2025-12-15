@@ -18,11 +18,12 @@ entity pll is
 			aresetn 	: in std_logic;
 			sym_type 	: in std_logic_vector(2 downto 0);
 			en_sym		: in std_logic;
-			sym_i		: in std_logic_vector(23 downto 0);
-			sym_q		: in std_logic_vector(23 downto 0);
+			sym_i		: in std_logic_vector(15 downto 0);
+			sym_q		: in std_logic_vector(15 downto 0);
+			euclidean_distance : out std_logic_vector(31 downto 0);
 			sym_sync_en 	: out std_logic:='0';
-			sym_sync_data_i	: out std_logic_vector(23 downto 0):=(others=>'0');
-			sym_sync_data_q	: out std_logic_vector(23 downto 0):=(others=>'0')
+			sym_sync_data_i	: out std_logic_vector(15 downto 0):=(others=>'0');
+			sym_sync_data_q	: out std_logic_vector(15 downto 0):=(others=>'0')
 		);
 end pll;
 
@@ -33,11 +34,11 @@ architecture arch of pll is
 				 aclk : in std_logic;
 				 aresetn : in std_logic;
 				 s_axis_phase_tvalid : in std_logic;
-				 s_axis_phase_tdata : in std_logic_vector(23 downto 0);
+				 s_axis_phase_tdata : in std_logic_vector(15 downto 0);
 				 s_axis_cartesian_tvalid : in std_logic;
-				 s_axis_cartesian_tdata : in std_logic_vector(47 downto 0);
+				 s_axis_cartesian_tdata : in std_logic_vector(31 downto 0);
 				 m_axis_dout_tvalid : out std_logic;
-				 m_axis_dout_tdata : out std_logic_vector(47 downto 0)
+				 m_axis_dout_tdata : out std_logic_vector(31 downto 0)
 			 );
 	end component;
 
@@ -46,9 +47,9 @@ architecture arch of pll is
 				 aclk : in std_logic;
 				 aresetn : in std_logic;
 				 s_axis_cartesian_tvalid : in std_logic;
-				 s_axis_cartesian_tdata : in std_logic_vector(47 downto 0);
+				 s_axis_cartesian_tdata : in std_logic_vector(31 downto 0);
 				 m_axis_dout_tvalid : out std_logic;
-				 m_axis_dout_tdata : out std_logic_vector(23 downto 0)
+				 m_axis_dout_tdata : out std_logic_vector(15 downto 0)
 			 );
 	end component;
 
@@ -67,19 +68,19 @@ architecture arch of pll is
 	end component;
 
 	signal phase_valid 						: std_logic:='0';
-	signal phase_data 						: std_logic_vector(23 downto 0):=(others=>'0');
-	signal cartesian_data 					: std_logic_vector(47 downto 0):=(others=>'0');
+	signal phase_data 						: std_logic_vector(15 downto 0):=(others=>'0');
+	signal cartesian_data 					: std_logic_vector(31 downto 0):=(others=>'0');
 	signal rotator_valid					: std_logic:='0';
-	signal rotator_data						: std_logic_vector(47 downto 0):=(others=>'0');
+	signal rotator_data						: std_logic_vector(31 downto 0):=(others=>'0');
 	signal en_sym_rotate					: std_logic:='0';
-	signal sym_i_rotate						: std_logic_vector(23 downto 0):=(others=>'0');
-	signal sym_q_rotate						: std_logic_vector(23 downto 0):=(others=>'0');
+	signal sym_i_rotate						: std_logic_vector(15 downto 0):=(others=>'0');
+	signal sym_q_rotate						: std_logic_vector(15 downto 0):=(others=>'0');
 
 	signal s_axis_cartesian_tvalid 			: std_logic:='0';
-	signal s_axis_cartesian_tdata 			: std_logic_vector(47 downto 0):=(others=>'0');
-	signal phase_in							: signed(19 downto 0):=(others=>'0');
+	signal s_axis_cartesian_tdata 			: std_logic_vector(31 downto 0):=(others=>'0');
+	signal phase_in							: signed(15 downto 0):=(others=>'0');
 	signal ped_valid						: std_logic := '0';
-	signal ped_data							: std_logic_vector(23 downto 0):=(others=>'0');
+	signal ped_data							: std_logic_vector(15 downto 0):=(others=>'0');
 
 	signal phase_diff_valid					: std_logic := '0';
 	signal phase_diff_wrap_valid 			: std_logic := '0';
@@ -93,17 +94,17 @@ architecture arch of pll is
 	signal phase_int_valid					: std_logic := '0';
 	signal phase_int_wrap_valid				: std_logic := '0';
 
-	signal phase_diff						: signed(15+4 downto 0):=(others=>'0');
-	signal div2,div4						: signed(15+4 downto 0):=(others=>'0');
-	signal p1								: signed(15+4 downto 0):=(others=>'0');
-	signal p2								: signed(15+4 downto 0):=(others=>'0');
-	signal integral_part 					: signed(15+4 downto 0):=(others=>'0');
-	signal loop_flt 						: signed(15+4 downto 0):=(others=>'0');
-	signal phase_int 						: signed(15+4 downto 0):=(others=>'0');
-	signal phase_int_wrap 					: signed(15+4 downto 0):=(others=>'0');
+	signal phase_diff						: signed(19 downto 0):=(others=>'0');
+	signal div2,div4						: signed(19 downto 0):=(others=>'0');
+	signal p1								: signed(19 downto 0):=(others=>'0');
+	signal p2								: signed(19 downto 0):=(others=>'0');
+	signal integral_part 					: signed(19 downto 0):=(others=>'0');
+	signal loop_flt 						: signed(19 downto 0):=(others=>'0');
+	signal phase_int 						: signed(19 downto 0):=(others=>'0');
+	signal phase_int_wrap 					: signed(19 downto 0):=(others=>'0');
 	signal complex_flag 					: std_logic := '1';
 	signal shift_flag 						: std_logic := '0';
-	signal phase_int_tmp					: std_logic_vector(23 downto 0):=(others=>'0'); 
+	signal phase_int_tmp					: std_logic_vector(15 downto 0):=(others=>'0'); 
 	signal err_i,err_q						: signed_array_16(15 downto 0):=(others=>(others=>'0'));
 	signal err_i_2,err_q_2					: signed_array_32(15 downto 0):=(others=>(others=>'0'));
 	signal err_sum							: signed_array_32(15 downto 0):=(others=>(others=>'0'));
@@ -148,8 +149,8 @@ architecture arch of pll is
 	attribute mark_debug of phase_int 					: signal is "TRUE";	
 	attribute mark_debug of phase_int_wrap 				: signal is "TRUE";	
 begin
-
-	phase_int_tmp <= std_logic_vector(phase_int(15 downto 0))&"00000000";
+	euclidean_distance <= std_logic_vector(min_data);
+	phase_int_tmp <= std_logic_vector(phase_int_wrap(19)&phase_int_wrap(14 downto 0));
 
 	process(sys_clk)
 	begin
@@ -180,8 +181,8 @@ begin
 	begin
 		if rising_edge(sys_clk) then
 			en_sym_rotate <= rotator_valid	;
-			sym_i_rotate  <= rotator_data(23 downto 0);
-			sym_q_rotate  <= rotator_data(47 downto 24);
+			sym_i_rotate  <= rotator_data(15 downto 0);
+			sym_q_rotate  <= rotator_data(31 downto 16);
 		end if;
 	end process;
 
@@ -202,12 +203,12 @@ begin
 				complex_flag <= '0';
 			else
 				if en_sym_rotate = '1' then
-					if sym_i_rotate = x"000000" then
-						s_axis_cartesian_tdata(23 downto 0)  <= x"000001";
+					if sym_i_rotate = x"0000" then
+						s_axis_cartesian_tdata(15 downto 0)  <= x"0001";
 					else
-						s_axis_cartesian_tdata(23 downto 0)  <= sym_i_rotate;
+						s_axis_cartesian_tdata(15 downto 0)  <= sym_i_rotate;
 					end if;
-					s_axis_cartesian_tdata(47 downto 24) <= sym_q_rotate;
+					s_axis_cartesian_tdata(31 downto 16) <= sym_q_rotate;
 					s_axis_cartesian_tvalid <= '1';
 				else
 					s_axis_cartesian_tvalid <= '0';
@@ -299,8 +300,8 @@ begin
 						--	end if;
 					when "101" =>  -- 8QAM
 						for mm in 0 to 7 loop
-							err_i(mm) <= signed(sym_i_rotate(15 downto 0)) - QAM8_LUT_I(mm);
-							err_q(mm) <= signed(sym_q_rotate(15 downto 0)) - QAM8_LUT_Q(mm);
+							err_i(mm) <= signed(sym_i_rotate) - QAM8_LUT_I(mm);
+							err_q(mm) <= signed(sym_q_rotate) - QAM8_LUT_Q(mm);
 							err_i_2(mm) <= err_i(mm) * err_i(mm); 
 							err_q_2(mm) <= err_q(mm) * err_q(mm);
 							err_sum(mm) <= err_i_2(mm) + err_q_2(mm);
@@ -308,8 +309,8 @@ begin
 						err_sum(15 downto 8) <= (others=>x"7FFFFFFF"); 
 					when "110" =>  -- 16QAM
 						for nn in 0 to 15 loop
-							err_i(nn) <= signed(sym_i_rotate(15 downto 0)) - QAM16_LUT_I(nn);
-							err_q(nn) <= signed(sym_q_rotate(15 downto 0)) - QAM16_LUT_Q(nn);
+							err_i(nn) <= signed(sym_i_rotate) - QAM16_LUT_I(nn);
+							err_q(nn) <= signed(sym_q_rotate) - QAM16_LUT_Q(nn);
 							err_i_2(nn) <= err_i(nn) * err_i(nn); 
 							err_q_2(nn) <= err_q(nn) * err_q(nn);
 							err_sum(nn) <= err_i_2(nn) + err_q_2(nn);
@@ -349,56 +350,56 @@ begin
 				case sym_type is
 					-- bpsk
 					when "000" =>
-						phase_diff	<=  resize(signed(ped_data(23 downto 8)),20) - phase_in;
+						phase_diff	<=  resize(signed(ped_data),20) - resize(phase_in,20);
 					-- qpsk
 					when "001" =>
-						phase_diff	<=  resize(signed(ped_data(23 downto 8)),20) - phase_in;
+						phase_diff	<=  resize(signed(ped_data),20) - resize(phase_in,20);
 					-- oqpsk
 					when "010" =>
-						phase_diff	<=  resize(signed(ped_data(23 downto 8)),20) - phase_in;
+						phase_diff	<=  resize(signed(ped_data),20) - resize(phase_in,20);
 					-- 8psk
 					when "011" =>
-						phase_diff	<=  resize(signed(ped_data(23 downto 8)),20) - PSK8_PHASE(min_ind_int);
+						if min_ind_int = 6 then
+							if signed(sym_q_rotate)> 0 then
+								phase_diff	<=  resize(signed(ped_data),20) - PI_POS_UNWRAP;
+							else
+								phase_diff	<=  resize(signed(ped_data),20) - PI_NEG_UNWRAP;
+							end if;
+						else
+							phase_diff	<=  resize(signed(ped_data),20) - resize(PSK8_PHASE(min_ind_int),20);
+						end if;
 					-- pi/4 dqpsk
 					when "100" =>
-						phase_diff	<=  resize(signed(ped_data(23 downto 8)),20) - phase_in;
+						phase_diff	<=  resize(signed(ped_data),20) - resize(phase_in,20);
 					-- 8qam
 					when "101" =>
-						phase_diff	<=  resize(signed(ped_data(23 downto 8)),20) - QAM8_PHASE(min_ind_int);
+						if signed(sym_q_rotate) = 0 or signed(sym_i_rotate) = 0 then
+							phase_diff	<=  (others=>'0');
+						else
+							phase_diff	<=  resize(signed(ped_data),20) - resize(QAM8_PHASE(min_ind_int),20);
+						end if;
 					-- 16qam
 					when "110" =>
-						phase_diff	<=  resize(signed(ped_data(23 downto 8)),20) - QAM16_PHASE(min_ind_int);
+						if signed(sym_q_rotate) = 0 or signed(sym_i_rotate) = 0 then
+							phase_diff	<=  (others=>'0');
+						else
+							phase_diff	<=  resize(signed(ped_data),20) - resize(QAM16_PHASE(min_ind_int),20);
+						end if;
 					when others => null;
 				end case;
 			end if;
 			phase_diff_valid <= ped_valid;
-			if phase_diff_valid = '1' then
-				if (phase_diff > PI_POS) then -- pi
-					phase_diff <= phase_diff + PI_NEG + PI_NEG;
-				elsif (phase_diff < PI_NEG) then
-					phase_diff <= phase_diff + PI_POS + PI_POS;
-				end if;
-			end if;
-			phase_diff_wrap_valid <= phase_diff_valid;
-			if phase_diff_wrap_valid = '1' then
-				if (phase_diff > PI_POS) then -- pi
-					phase_diff <= phase_diff + PI_NEG + PI_NEG;
-				elsif (phase_diff < PI_NEG) then
-					phase_diff <= phase_diff + PI_POS + PI_POS;
-				end if;
-			end if;
-			phase_diff_wrap_valid_d0 <= phase_diff_wrap_valid;
 		end if;
 	end process;
 
 	process(sys_clk)
 	begin
 		if rising_edge(sys_clk) then
-			if phase_diff_wrap_valid_d0 = '1' then
+			if phase_diff_valid = '1' then
 				div2 <= phase_diff(phase_diff'high)&phase_diff(phase_diff'high)&phase_diff(phase_diff'high downto 2);
 				div4 <= phase_diff(phase_diff'high)&phase_diff(phase_diff'high)&phase_diff(phase_diff'high)&phase_diff(phase_diff'high)&phase_diff(phase_diff'high downto 4);
 			end if;
-			div_valid <= phase_diff_wrap_valid_d0;
+			div_valid <= phase_diff_valid;
 		end if;
 	end process;
 
@@ -422,15 +423,6 @@ begin
 				integral_part <= integral_part + p2;
 			end if;
 			intg_valid <= p_div_valid;
-
-			if intg_valid = '1' then
-				if integral_part > PI_POS then
-					integral_part <= integral_part + PI_NEG + PI_NEG;
-				elsif integral_part < PI_NEG then
-					integral_part <= integral_part + PI_POS + PI_POS;
-				end if;
-			end if;
-			intg_wrap_valid <= intg_valid;
 		end if;
 	end process;
 
@@ -439,19 +431,10 @@ begin
 		if rising_edge(sys_clk) then
 			if aresetn = '0' then
 				loop_flt <= (others=>'0');
-			elsif intg_wrap_valid = '1' then
+			elsif intg_valid = '1' then
 				loop_flt <= p1 + integral_part;
 			end if;
-			loop_flt_valid <= intg_wrap_valid;
-
-			if loop_flt_valid = '1' then
-				if loop_flt > PI_POS then
-					loop_flt <= loop_flt + PI_NEG + PI_NEG;
-				elsif loop_flt < PI_NEG then
-					loop_flt <= loop_flt + PI_POS + PI_POS;
-				end if;
-			end if;
-			loop_flt_wrap_valid <= loop_flt_valid;
+			loop_flt_valid <= intg_valid;
 		end if;
 	end process;
 
@@ -460,16 +443,15 @@ begin
 		if rising_edge(sys_clk) then
 			if aresetn = '0' then
 				phase_int <= (others=>'0');
-			elsif loop_flt_wrap_valid = '1' then
+			elsif loop_flt_valid = '1' then
 				phase_int <= phase_int  + loop_flt;
 			end if;
-			phase_int_valid <= loop_flt_wrap_valid;
-
+			phase_int_valid <= loop_flt_valid;
 			if phase_int_valid = '1' then
-				if phase_int > PI_POS then
-					phase_int <= phase_int + PI_NEG + PI_NEG;
-				elsif phase_int < PI_NEG then
-					phase_int <= phase_int + PI_POS + PI_POS;
+				if phase_int > PI_POS_UNWRAP then
+					phase_int <= phase_int + PI_NEG_UNWRAP + PI_NEG_UNWRAP;
+				elsif phase_int < PI_NEG_UNWRAP then
+					phase_int <= phase_int + PI_POS_UNWRAP + PI_POS_UNWRAP;
 				end if;
 			end if;
 			phase_int_wrap_valid <= phase_int_valid;
@@ -480,10 +462,10 @@ begin
 	begin
 		if rising_edge(sys_clk) then
 			if phase_int_wrap_valid = '0' then
-				if (phase_int > PI_POS) then -- pi
-					phase_int_wrap <= phase_int + PI_NEG + PI_NEG;
-				elsif (phase_int < PI_NEG) then
-					phase_int_wrap <= phase_int + PI_POS + PI_POS;
+				if (phase_int > PI_POS_UNWRAP) then -- pi
+					phase_int_wrap <= phase_int + PI_NEG_UNWRAP + PI_NEG_UNWRAP;
+				elsif (phase_int < PI_NEG_UNWRAP) then
+					phase_int_wrap <= phase_int + PI_POS_UNWRAP + PI_POS_UNWRAP;
 				else
 					phase_int_wrap <= phase_int;
 				end if;

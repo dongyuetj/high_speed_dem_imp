@@ -47,11 +47,11 @@ architecture Behavioral of tb_pll is
 			aresetn 	: in std_logic;
 			sym_type 	: in std_logic_vector(2 downto 0);
 			en_sym		: in std_logic;
-			sym_i		: in std_logic_vector(23 downto 0);
-			sym_q		: in std_logic_vector(23 downto 0);
+			sym_i		: in std_logic_vector(15 downto 0);
+			sym_q		: in std_logic_vector(15 downto 0);
 			sym_sync_en 	: out std_logic:='0';
-			sym_sync_data_i	: out std_logic_vector(23 downto 0):=(others=>'0');
-			sym_sync_data_q	: out std_logic_vector(23 downto 0):=(others=>'0')
+			sym_sync_data_i	: out std_logic_vector(15 downto 0):=(others=>'0');
+			sym_sync_data_q	: out std_logic_vector(15 downto 0):=(others=>'0')
 		);
 	end component;
 
@@ -60,15 +60,16 @@ architecture Behavioral of tb_pll is
 	constant clock_period 			: time := 31.250 ns;
 	signal cnt_div_4 				: std_logic_vector(31 downto 0):= (others=>'0'); 
 	signal sym_vld 					: std_logic:='0';
-	signal sym_i 					: std_logic_vector(23 downto 0):=(others=>'0');
-	signal sym_q					: std_logic_vector(23 downto 0):=(others=>'0');
+	signal sym_vld_d 					: std_logic:='0';
+	signal sym_i 					: std_logic_vector(15 downto 0):=(others=>'0');
+	signal sym_q					: std_logic_vector(15 downto 0):=(others=>'0');
 	signal dem_vld 					: std_logic:='0';
 	signal dem_sym 					: std_logic_vector(7 downto 0):= (others=>'0');
 	signal sym_sync_en 				: std_logic:='0';
-	signal sym_sync_data_i			: std_logic_vector(23 downto 0):=(others=>'0');
-	signal sym_sync_data_q			: std_logic_vector(23 downto 0):=(others=>'0');
-	file rec_r_i: text open read_mode is "D:\projects\46_high_speed_dem\sim\modelsim\sim_i.txt";
-	file rec_r_q: text open read_mode is "D:\projects\46_high_speed_dem\sim\modelsim\sim_q.txt";
+	signal sym_sync_data_i			: std_logic_vector(15 downto 0):=(others=>'0');
+	signal sym_sync_data_q			: std_logic_vector(15 downto 0):=(others=>'0');
+	file rec_r_i: text open read_mode is "D:\projects\46_high_speed_dem\sim\modelsim\agc_i2.txt";
+	file rec_r_q: text open read_mode is "D:\projects\46_high_speed_dem\sim\modelsim\agc_q2.txt";
 	file rec_2: text open write_mode is "D:\projects\46_high_speed_dem\sim\modelsim\sync_sym_i.txt"; 
 	file rec_3: text open write_mode is "D:\projects\46_high_speed_dem\sim\modelsim\sync_sym_q.txt"; 
 begin
@@ -104,7 +105,7 @@ begin
 			if sym_vld = '1' then
 				readline(rec_r_i,l);
 				read(l,data_temp);
-				sym_i <= conv_std_logic_vector(data_temp,24);
+				sym_i <= conv_std_logic_vector(data_temp,16);
 			end if;
 		end if;
 	end process;
@@ -117,7 +118,7 @@ begin
 			if sym_vld = '1' then
 				readline(rec_r_q,l);
 				read(l,data_temp);
-				sym_q <= conv_std_logic_vector(data_temp,24);
+				sym_q <= conv_std_logic_vector(data_temp,16);
 			end if;
 		end if;
 	end process;
@@ -125,7 +126,8 @@ begin
 	process(sys_clk)
 	begin
 		if rising_edge(sys_clk) then
-			if cnt_div_4 = 4*12-1 then
+			sym_vld_d <= sym_vld;
+			if cnt_div_4 = 256-1 then
 				cnt_div_4 <= (others=>'0');
 				sym_vld <= '1';
 			else
@@ -139,8 +141,8 @@ begin
 	port map(
 			sys_clk			=> sys_clk,
 			aresetn 		=> aresetn,
-			sym_type 		=> "001",
-			en_sym			=> sym_vld,
+			sym_type 		=> "101",
+			en_sym			=> sym_vld_d,
 			sym_i			=> sym_i,
 			sym_q			=> sym_q,
 			sym_sync_en 	=> sym_sync_en,

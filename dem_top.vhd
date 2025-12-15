@@ -33,17 +33,17 @@ end dem_top;
 
 architecture arch of dem_top is
 
-	component mf
-		port (
-				 aresetn : in std_logic;
-				 aclk : in std_logic;
-				 s_axis_data_tvalid : in std_logic;
-				 s_axis_data_tready : out std_logic;
-				 s_axis_data_tdata : in std_logic_vector(15 downto 0);
-				 m_axis_data_tvalid : out std_logic;
-				 m_axis_data_tdata : out std_logic_vector(31 downto 0) 
-			 );
-	end component;
+--	component mf
+--		port (
+--				 aresetn : in std_logic;
+--				 aclk : in std_logic;
+--				 s_axis_data_tvalid : in std_logic;
+--				 s_axis_data_tready : out std_logic;
+--				 s_axis_data_tdata : in std_logic_vector(15 downto 0);
+--				 m_axis_data_tvalid : out std_logic;
+--				 m_axis_data_tdata : out std_logic_vector(31 downto 0) 
+--			 );
+--	end component;
 
 	component agc
 	port(
@@ -61,18 +61,18 @@ architecture arch of dem_top is
 		);
 	end component;
 	
-	component sym_sync
-	port(
-			sys_clk		: in std_logic; -- 28.8MHz
-			aresetn 	: in std_logic;
-			samp_vld	: in std_logic;
-			samp_i		: in std_logic_vector(8 downto 0);
-			samp_q		: in std_logic_vector(8 downto 0);
-			sym_en		: out std_logic:='0';
-			sym_i		: out std_logic_vector(24 downto 0):=(others=>'0');
-			sym_q		: out std_logic_vector(24 downto 0):=(others=>'0')
-		);
-    end component;
+--	component sym_sync
+--	port(
+--			sys_clk		: in std_logic; -- 28.8MHz
+--			aresetn 	: in std_logic;
+--			samp_vld	: in std_logic;
+--			samp_i		: in std_logic_vector(8 downto 0);
+--			samp_q		: in std_logic_vector(8 downto 0);
+--			sym_en		: out std_logic:='0';
+--			sym_i		: out std_logic_vector(24 downto 0):=(others=>'0');
+--			sym_q		: out std_logic_vector(24 downto 0):=(others=>'0')
+--		);
+--    end component;
 
 	component pll
 	port(
@@ -80,11 +80,12 @@ architecture arch of dem_top is
 			aresetn 	: in std_logic;
 			sym_type 	: in std_logic_vector(2 downto 0);
 			en_sym		: in std_logic;
-			sym_i		: in std_logic_vector(23 downto 0);
-			sym_q		: in std_logic_vector(23 downto 0);
+			sym_i		: in std_logic_vector(15 downto 0);
+			sym_q		: in std_logic_vector(15 downto 0);
+			euclidean_distance : out std_logic_vector(31 downto 0);
 			sym_sync_en 	: out std_logic:='0';
-			sym_sync_data_i	: out std_logic_vector(23 downto 0):=(others=>'0');
-			sym_sync_data_q	: out std_logic_vector(23 downto 0):=(others=>'0')
+			sym_sync_data_i	: out std_logic_vector(15 downto 0):=(others=>'0');
+			sym_sync_data_q	: out std_logic_vector(15 downto 0):=(others=>'0')
 		);
 	end component;
 
@@ -98,18 +99,18 @@ architecture arch of dem_top is
 			 );
 	end component;
 
-	component tll_newer
-	port(
-			sys_clk		: in std_logic;
-			aresetn 	: in std_logic;
-			samp_vld	: in std_logic;
-			samp_i		: in std_logic_vector(8 downto 0);
-			samp_q		: in std_logic_vector(8 downto 0);
-			en_sym 		: out std_logic:='0';
-			sym_i		: out std_logic_vector(24 downto 0):=(others=>'0');
-			sym_q		: out std_logic_vector(24 downto 0):=(others=>'0')
-		);
-	end component;
+--	component tll_newer
+--	port(
+--			sys_clk		: in std_logic;
+--			aresetn 	: in std_logic;
+--			samp_vld	: in std_logic;
+--			samp_i		: in std_logic_vector(8 downto 0);
+--			samp_q		: in std_logic_vector(8 downto 0);
+--			en_sym 		: out std_logic:='0';
+--			sym_i		: out std_logic_vector(24 downto 0):=(others=>'0');
+--			sym_q		: out std_logic_vector(24 downto 0):=(others=>'0')
+--		);
+--	end component;
 
 	component cmp4
 	generic(
@@ -161,8 +162,8 @@ architecture arch of dem_top is
 	signal phase_int	: std_logic_vector(19 downto 0):=(others=>'0'); 
 
 	signal sym_sync_en		: std_logic_vector(3 downto 0):=(others=>'0');
-	signal sym_sync_data_i	: std_logic_array_24(3 downto 0):=(others=>(others=>'0'));
-	signal sym_sync_data_q  : std_logic_array_24(3 downto 0):=(others=>(others=>'0'));
+	signal sym_sync_data_i	: std_logic_array_16(3 downto 0):=(others=>(others=>'0'));
+	signal sym_sync_data_q  : std_logic_array_16(3 downto 0):=(others=>(others=>'0'));
 
 	signal m_axis_phase 			: std_logic_vector(23 downto 0):=(others=>'0');
 	signal m_axis_phase_tvalid		: std_logic:='0';
@@ -178,8 +179,8 @@ architecture arch of dem_top is
 	signal mf_q						: std_logic_vector(15 downto 0):=(others=>'0'); 
 	signal cnt4 					: unsigned(1 downto 0):= (others=>'0'); 
 	signal agc_vld					: std_logic_vector(3 downto 0):= (others=>'0'); 
-	signal agc_i					: std_logic_array_24(3 downto 0):= (others=>(others=>'0')); 
-	signal agc_q					: std_logic_array_24(3 downto 0):= (others=>(others=>'0'));
+	signal agc_i					: std_logic_array_16(3 downto 0):= (others=>(others=>'0')); 
+	signal agc_q					: std_logic_array_16(3 downto 0):= (others=>(others=>'0'));
 	signal symb_power_valid				: std_logic_vector(3 downto 0):=(others=>'0'); 
 	signal symb_power_out				: std_logic_array_32(3 downto 0):= (others=>(others=>'0'));
 	signal max_data			: std_logic_vector(32-1 downto 0):=(others=>'0');
@@ -190,16 +191,24 @@ architecture arch of dem_top is
 	signal agc_s : signed(31 downto 0):= (others=>'0');
 	signal p1,p2,p3,p4 : signed(31 downto 0):= (others=>'0');
 	-- synthesis translate_off
-	file rec_0: text open write_mode is "D:\projects\46_high_speed_dem\sim\modelsim\sym_i0.txt"; 
-	file rec_1: text open write_mode is "D:\projects\46_high_speed_dem\sim\modelsim\sym_q0.txt"; 
-	file rec_2: text open write_mode is "D:\projects\46_high_speed_dem\sim\modelsim\sym_i1.txt"; 
-	file rec_3: text open write_mode is "D:\projects\46_high_speed_dem\sim\modelsim\sym_q1.txt"; 
-	file rec_4: text open write_mode is "D:\projects\46_high_speed_dem\sim\modelsim\sym_i2.txt"; 
-	file rec_5: text open write_mode is "D:\projects\46_high_speed_dem\sim\modelsim\sym_q2.txt"; 
-	file rec_6: text open write_mode is "D:\projects\46_high_speed_dem\sim\modelsim\sym_i3.txt"; 
-	file rec_7: text open write_mode is "D:\projects\46_high_speed_dem\sim\modelsim\sym_q3.txt"; 
+	file rec_0: text open write_mode is "D:\projects\46_high_speed_dem\sim\modelsim\agc_i0.txt"; 
+	file rec_1: text open write_mode is "D:\projects\46_high_speed_dem\sim\modelsim\agc_q0.txt"; 
+	file rec_2: text open write_mode is "D:\projects\46_high_speed_dem\sim\modelsim\agc_i1.txt"; 
+	file rec_3: text open write_mode is "D:\projects\46_high_speed_dem\sim\modelsim\agc_q1.txt"; 
+	file rec_4: text open write_mode is "D:\projects\46_high_speed_dem\sim\modelsim\agc_i2.txt"; 
+	file rec_5: text open write_mode is "D:\projects\46_high_speed_dem\sim\modelsim\agc_q2.txt"; 
+	file rec_6: text open write_mode is "D:\projects\46_high_speed_dem\sim\modelsim\agc_i3.txt"; 
+	file rec_7: text open write_mode is "D:\projects\46_high_speed_dem\sim\modelsim\agc_q3.txt"; 
 	file rec_8: text open write_mode is "D:\projects\46_high_speed_dem\sim\modelsim\agc_i.txt"; 
 	file rec_9: text open write_mode is "D:\projects\46_high_speed_dem\sim\modelsim\agc_q.txt"; 
+	file rec_a: text open write_mode is "D:\projects\46_high_speed_dem\sim\modelsim\sym_i0.txt"; 
+	file rec_b: text open write_mode is "D:\projects\46_high_speed_dem\sim\modelsim\sym_q0.txt"; 
+	file rec_c: text open write_mode is "D:\projects\46_high_speed_dem\sim\modelsim\sym_i1.txt"; 
+	file rec_d: text open write_mode is "D:\projects\46_high_speed_dem\sim\modelsim\sym_q1.txt"; 
+	file rec_e: text open write_mode is "D:\projects\46_high_speed_dem\sim\modelsim\sym_i2.txt"; 
+	file rec_f: text open write_mode is "D:\projects\46_high_speed_dem\sim\modelsim\sym_q2.txt"; 
+	file rec_g: text open write_mode is "D:\projects\46_high_speed_dem\sim\modelsim\sym_i3.txt"; 
+	file rec_h: text open write_mode is "D:\projects\46_high_speed_dem\sim\modelsim\sym_q3.txt"; 
 	-- synthesis translate_on
 	attribute mark_debug : string;
 	attribute mark_debug of sym_sync_en,sym_sync_data_i,sym_sync_data_q: signal is "TRUE";
@@ -282,11 +291,11 @@ begin
 					if agc_vld_t = '1' then
 						agc_vld(0)  <= '1' 			;
 						if sym_type /= "100" then
-							agc_i(0) 	<= std_logic_vector(resize(signed(agc_i_t),24));
-							agc_q(0) 	<= std_logic_vector(resize(signed(agc_q_t),24));
+							agc_i(0) 	<= agc_i_t;
+							agc_q(0) 	<= agc_q_t;
 						else
-							agc_i(0) 	<= std_logic_vector(resize(signed(agc_c(27 downto 11)),24));
-							agc_q(0) 	<= std_logic_vector(resize(signed(agc_s(27 downto 11)),24));
+							agc_i(0) 	<= std_logic_vector(signed(agc_c(26 downto 11)));
+							agc_q(0) 	<= std_logic_vector(signed(agc_s(26 downto 11)));
 						end if;
 					else
 						agc_vld  <= (others=>'0'); 
@@ -295,11 +304,11 @@ begin
 					if agc_vld_t = '1' then
 						agc_vld(1)  <= '1' 			;
 						if sym_type /= "100" then
-							agc_i(1) 	<=  std_logic_vector(resize(signed(agc_i_t),24));
-							agc_q(1) 	<=  std_logic_vector(resize(signed(agc_q_t),24));
-						else
-							agc_i(1) 	<= std_logic_vector(resize(signed(agc_c(27 downto 11)),24));
-							agc_q(1) 	<= std_logic_vector(resize(signed(agc_s(27 downto 11)),24));
+							agc_i(1) 	<=  agc_i_t;
+							agc_q(1) 	<=  agc_q_t;
+						else                                                               
+							agc_i(1) 	<=  std_logic_vector(signed(agc_c(26 downto 11)));
+							agc_q(1) 	<=  std_logic_vector(signed(agc_s(26 downto 11)));
 						end if;
 					else
 						agc_vld  <= (others=>'0'); 
@@ -308,11 +317,11 @@ begin
 					if agc_vld_t = '1' then
 						agc_vld(2)  <= '1' 			;
 						if sym_type /= "100" then
-							agc_i(2) 	<=  std_logic_vector(resize(signed(agc_i_t),24));
-							agc_q(2) 	<=  std_logic_vector(resize(signed(agc_q_t),24));
-						else
-							agc_i(2) 	<= std_logic_vector(resize(signed(agc_c(27 downto 11)),24));
-							agc_q(2) 	<= std_logic_vector(resize(signed(agc_s(27 downto 11)),24));
+							agc_i(2) 	<=   agc_i_t;
+							agc_q(2) 	<=   agc_q_t;
+						else                                                                
+							agc_i(2) 	<=   std_logic_vector(signed(agc_c(26 downto 11)));
+							agc_q(2) 	<=   std_logic_vector(signed(agc_s(26 downto 11)));
 						end if;
 					else
 						agc_vld  <= (others=>'0'); 
@@ -321,11 +330,11 @@ begin
 					if agc_vld_t = '1' then
 						agc_vld(3)  <= '1' 			;
 						if sym_type /= "100" then
-							agc_i(3) 	<=  std_logic_vector(resize(signed(agc_i_t),24));
-							agc_q(3) 	<=  std_logic_vector(resize(signed(agc_q_t),24));
-						else
-							agc_i(3) 	<= std_logic_vector(resize(signed(agc_c(27 downto 11)),24));
-							agc_q(3) 	<= std_logic_vector(resize(signed(agc_s(27 downto 11)),24));
+							agc_i(3) 	<=    agc_i_t;
+							agc_q(3) 	<=    agc_q_t;
+						else                                                                 
+							agc_i(3) 	<=    std_logic_vector(signed(agc_c(26 downto 11)));
+							agc_q(3) 	<=    std_logic_vector(signed(agc_s(26 downto 11)));
 						end if;
 					else
 						agc_vld  <= (others=>'0'); 
@@ -361,10 +370,12 @@ begin
 		port map(
 					sys_clk			=> sys_clk				, 
 					aresetn 		=> pll_rstn(0)			, 
-					sym_type		=> "001"				,
+					sym_type		=> "101"				,
 					en_sym			=> agc_vld(ii)			, 
 					sym_i			=> agc_i(ii),   
 					sym_q			=> agc_q(ii),   
+
+					euclidean_distance => open					,
 					sym_sync_en     => sym_sync_en(ii)			,
 					sym_sync_data_i	=> sym_sync_data_i(ii)		,
 					sym_sync_data_q	=> sym_sync_data_q(ii) 
@@ -494,6 +505,94 @@ begin
 			if agc_vld(3) = '1' then
 				write(buf,to_integer(signed(agc_q(3))));
 				writeline(rec_7,buf);
+			end if;
+		end if;
+	end process;
+
+	process(sys_clk)
+		variable buf: LINE;
+	begin
+		if rising_edge(sys_clk) then
+			if sym_sync_en(0) = '1' then
+				write(buf,to_integer(signed(sym_sync_data_i(0))));
+				writeline(rec_a,buf);
+			end if;
+		end if;
+	end process;
+
+	process(sys_clk)
+		variable buf: LINE;
+	begin
+		if rising_edge(sys_clk) then
+			if sym_sync_en(0) = '1' then
+				write(buf,to_integer(signed(sym_sync_data_q(0))));
+				writeline(rec_b,buf);
+			end if;
+		end if;
+	end process;
+
+	process(sys_clk)
+		variable buf: LINE;
+	begin
+		if rising_edge(sys_clk) then
+			if sym_sync_en(1) = '1' then
+				write(buf,to_integer(signed(sym_sync_data_i(1))));
+				writeline(rec_c,buf);
+			end if;
+		end if;
+	end process;
+
+	process(sys_clk)
+		variable buf: LINE;
+	begin
+		if rising_edge(sys_clk) then
+			if sym_sync_en(1) = '1' then
+				write(buf,to_integer(signed(sym_sync_data_q(1))));
+				writeline(rec_d,buf);
+			end if;
+		end if;
+	end process;
+
+	process(sys_clk)
+		variable buf: LINE;
+	begin
+		if rising_edge(sys_clk) then
+			if sym_sync_en(2) = '1' then
+				write(buf,to_integer(signed(sym_sync_data_i(2))));
+				writeline(rec_e,buf);
+			end if;
+		end if;
+	end process;
+
+	process(sys_clk)
+		variable buf: LINE;
+	begin
+		if rising_edge(sys_clk) then
+			if sym_sync_en(2) = '1' then
+				write(buf,to_integer(signed(sym_sync_data_q(2))));
+				writeline(rec_f,buf);
+			end if;
+		end if;
+	end process;
+
+	process(sys_clk)
+		variable buf: LINE;
+	begin
+		if rising_edge(sys_clk) then
+			if sym_sync_en(3) = '1' then
+				write(buf,to_integer(signed(sym_sync_data_i(3))));
+				writeline(rec_g,buf);
+			end if;
+		end if;
+	end process;
+
+	process(sys_clk)
+		variable buf: LINE;
+	begin
+		if rising_edge(sys_clk) then
+			if sym_sync_en(3) = '1' then
+				write(buf,to_integer(signed(sym_sync_data_q(3))));
+				writeline(rec_h,buf);
 			end if;
 		end if;
 	end process;
