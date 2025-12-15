@@ -101,7 +101,35 @@ architecture arch of pll is
 	signal phase_int 						: signed(15+4 downto 0):=(others=>'0');
 	signal phase_int_wrap 					: signed(15+4 downto 0):=(others=>'0');
 
+	-- QPSK
 	signal iq_sign		: std_logic_vector(1 downto 0):=(others=>'0');
+
+	-- cos/sin table for 8PSK (scaled by 127)
+--    type lut_array is array (0 to 7) of signed(7 downto 0);
+--    constant COS_LUT : lut_array := (
+--        to_signed(127,8),  -- 0°
+--        to_signed( 90,8),  -- 45°
+--        to_signed(  0,8),  -- 90°
+--        to_signed(-90,8),  -- 135°
+--        to_signed(-127,8), -- 180°
+--        to_signed(-90,8),  -- 225°
+--        to_signed(  0,8),  -- 270°
+--        to_signed( 90,8)   -- 315°
+--    );
+--
+--    constant SIN_LUT : lut_array := (
+--        to_signed(  0,8),  -- 0°
+--        to_signed( 90,8),  -- 45°
+--        to_signed(127,8),  -- 90°
+--        to_signed( 90,8),  -- 135°
+--        to_signed(  0,8),  -- 180°
+--        to_signed(-90,8),  -- 225°
+--        to_signed(-127,8), -- 270°
+--        to_signed(-90,8)   -- 315°
+--    );
+
+   -- signal metric : array(0 to 7) of signed(23 downto 0);
+   -- signal best_idx : unsigned(2 downto 0);
 
 	attribute mark_debug : string;
 	attribute mark_debug of phase_valid 				: signal is "TRUE";	
@@ -223,18 +251,11 @@ begin
 							end case;
 				--		when "010" => -- OQPSK
 				--			null;
-				--		when "011" => -- 8PSK
-				--			case phase_corr is
-				--				when region_1 =>
-				--				when region_2 =>
-				--				when region_3 =>
-				--				when region_4 =>
-				--				when region_5 =>
-				--				when region_6 =>
-				--				when region_7 =>
-				--				when region_8 =>
-				--				when others => null;
-				--			end case;
+						when "011" => -- 8PSK
+							null;
+						--	for k in 0 to 7 loop
+						--		metric(k) <= resize(din_i,24) * resize(COS_LUT(k),24) + resize(din_q,24) * resize(SIN_LUT(k),24);
+						--	end loop;
 				--		when "100" => -- pi/4DQPSK
 				--			null;
 				--		when "101" => -- 8QAM

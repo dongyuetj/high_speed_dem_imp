@@ -24,7 +24,9 @@ architecture Behavioral of tb_demod is
 				ddc_i 			: in std_logic_vector(15 downto 0);
 				ddc_q			: in std_logic_vector(15 downto 0);
 				dem_vld 		: out std_logic:='0';
-				dem_sym 		: out std_logic_vector(7 downto 0):= (others=>'0')
+				dem_sym_i		: out std_logic_vector(15 downto 0):= (others=>'0');
+				dem_sym_q		: out std_logic_vector(15 downto 0):= (others=>'0');
+				dem_bit 		: out std_logic_vector(7 downto 0):= (others=>'0')
 			);
 	end component;
 
@@ -36,9 +38,16 @@ architecture Behavioral of tb_demod is
 	signal ddc_i 					: std_logic_vector(15 downto 0):=(others=>'0');
 	signal ddc_q					: std_logic_vector(15 downto 0):=(others=>'0');
 	signal dem_vld 					: std_logic:='0';
-	signal dem_sym 					: std_logic_vector(7 downto 0):= (others=>'0');
-	file rec_r_i: text open read_mode is "D:\projects\46_high_speed_dem\sim\Ch0WDDC0_Freq0KHz_BW_gray_i.txt";
-	file rec_r_q: text open read_mode is "D:\projects\46_high_speed_dem\sim\Ch0WDDC0_Freq0KHz_BW_gray_q.txt";
+	signal	dem_sym_i		: std_logic_vector(15 downto 0):= (others=>'0');
+	signal	dem_sym_q		: std_logic_vector(15 downto 0):= (others=>'0');
+	signal	dem_bit 		: std_logic_vector(7 downto 0):= (others=>'0');
+--	file rec_r_i: text open read_mode is "D:\projects\46_high_speed_dem\sim\Ch0WDDC0_Freq0KHz_BW_gray_i.txt";
+--	file rec_r_q: text open read_mode is "D:\projects\46_high_speed_dem\sim\Ch0WDDC0_Freq0KHz_BW_gray_q.txt";
+--	file rec_r_i: text open read_mode is "D:\projects\46_high_speed_dem\sim\bpsk_rb_6p4mhz_nsamp_4_ampl_-20dbm_cnr_12db_i.txt";
+--	file rec_r_q: text open read_mode is "D:\projects\46_high_speed_dem\sim\bpsk_rb_6p4mhz_nsamp_4_ampl_-20dbm_cnr_12db_q.txt";
+	file rec_r_i: text open read_mode is "D:\projects\46_high_speed_dem\sim\modelsim\sim_i.txt";
+	file rec_r_q: text open read_mode is "D:\projects\46_high_speed_dem\sim\modelsim\sim_q.txt";
+	
 
 begin
 
@@ -112,7 +121,9 @@ begin
 				ddc_i 		=> 	ddc_i,
 				ddc_q		=> 	ddc_q,
 				dem_vld 	=> 	dem_vld,
-				dem_sym 	=> 	dem_sym
+				dem_sym_i	=> 	dem_sym_i,
+				dem_sym_q	=> 	dem_sym_q,
+				dem_bit 	=> 	dem_bit
 			);
 
 end Behavioral;

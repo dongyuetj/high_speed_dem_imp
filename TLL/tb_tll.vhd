@@ -41,7 +41,7 @@ end tb_tll;
 
 architecture Behavioral of tb_tll is
 
-	component tll_new
+	component tll_newer
 	port(
 			sys_clk		: in std_logic;
 			aresetn 	: in std_logic;
@@ -122,7 +122,7 @@ begin
 	process(sys_clk)
 	begin
 		if rising_edge(sys_clk) then
-			if cnt_div_4 = 16-1 then
+			if cnt_div_4 = 48-1 then
 				cnt_div_4 <= (others=>'0');
 				samp_vld <= '1';
 			else
@@ -132,7 +132,7 @@ begin
 		end if;
 	end process;
 
-	u_tll: tll_new
+	u_tll: tll_newer
 	port map(
 			sys_clk		=> sys_clk	,
 			aresetn 	=> aresetn  ,

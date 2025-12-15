@@ -25,7 +25,9 @@ entity dem_top is
 			ddc_i 			: in std_logic_vector(15 downto 0);
 			ddc_q			: in std_logic_vector(15 downto 0);
 			dem_vld 		: out std_logic:='0';
-			dem_sym 		: out std_logic_vector(7 downto 0):= (others=>'0')
+			dem_sym_i		: out std_logic_vector(15 downto 0):= (others=>'0');
+			dem_sym_q		: out std_logic_vector(15 downto 0):= (others=>'0');
+			dem_bit 		: out std_logic_vector(7 downto 0):= (others=>'0')
 		);
 end dem_top;
 
@@ -96,7 +98,7 @@ architecture arch of dem_top is
 			 );
 	end component;
 
-	component tll_new
+	component tll_newer
 	port(
 			sys_clk		: in std_logic;
 			aresetn 	: in std_logic;
@@ -280,7 +282,7 @@ begin
 	end process;
 	-- synthesis translate_on
 
-	u_tll_new: tll_new
+	u_tll_new: tll_newer
 	port map(
 			sys_clk		=>  sys_clk,
 			aresetn 	=>  aresetn,
@@ -348,7 +350,9 @@ begin
 		);
 
 	dem_vld <= sym_sync_en ;
-	dem_sym(1 downto 0) <= sym_sync_data_i(sym_sync_data_i'high) & sym_sync_data_q(sym_sync_data_q'high) ;
+	dem_sym_i <= sym_sync_data_i(15 downto 0);
+	dem_sym_q <= sym_sync_data_q(15 downto 0);
+	dem_bit(1 downto 0) <= sym_sync_data_i(sym_sync_data_i'high) & sym_sync_data_q(sym_sync_data_q'high) ;
 
 	-- synthesis translate_off
 	process(sys_clk)
