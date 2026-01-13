@@ -13,22 +13,23 @@ use IEEE.NUMERIC_STD.ALL;
 library work;
 use work.my_dem_pkg.all;
 
-entity tll_newer is
+entity tll_track is
 	port(
 			sys_clk		: in std_logic;
 			aresetn 	: in std_logic;
 			samp_vld	: in std_logic;
 			samp_i		: in std_logic_vector(8 downto 0);
 			samp_q		: in std_logic_vector(8 downto 0);
+			track_flag 	: in std_logic:='0';
 			en_sym 		: out std_logic;
 			sym_i		: out std_logic_vector(24 downto 0):= (others=>'0'); 
 			sym_q		: out std_logic_vector(24 downto 0):= (others=>'0'); 
 			dmu_out_vld : out std_logic:='0';
 			dmu_out		: out std_logic_vector(24 downto 0):= (others=>'0') 
 		);
-end tll_newer;
+end tll_track;
 
-architecture arch of tll_newer is
+architecture arch of tll_track is
 
 	component div_gen
 		port (
@@ -89,7 +90,6 @@ architecture arch of tll_newer is
 	signal cnt_shift	: std_logic_vector(47 downto 0):=(others=>'0');
 	signal divisor   	: std_logic_vector(31 downto 0):=(others=>'0');
 	signal quotient  	: std_logic_vector(79 downto 0):=(others=>'0');
-	signal err_out		: signed(49 downto 0):=(others=>'0');
 
 begin      
 
@@ -172,11 +172,14 @@ begin
 					TED_buff_y(1) <= TED_buff_y(0);
 				end if;
 				if (samp_vld_d(2) = '1') and (underflow = '1') then
-					err <= TED_buff_x(0)*(TED_buff_x(1) - xI_t) + TED_buff_y(0)*(TED_buff_y(1) - yI_t);
+					if track_flag = '1' then -- frozen tll
+						err <= (others=>'0'); 
+					else
+						err <= TED_buff_x(0)*(TED_buff_x(1) - xI_t) + TED_buff_y(0)*(TED_buff_y(1) - yI_t);
+					end if;
 					en_sym <= '1';
 					sym_i	<=	std_logic_vector(xI_t);
 					sym_q	<=	std_logic_vector(yI_t);
-					err_out <=  TED_buff_x(0)*(TED_buff_x(1) - xI_t) + TED_buff_y(0)*(TED_buff_y(1) - yI_t);
 				else
 					err <= (others=>'0'); 
 					en_sym <= '0';
@@ -280,25 +283,6 @@ begin
 				m_axis_dout_tvalid 			=> div_vld,
 				m_axis_dout_tdata 			=> quotient
 			);
-
---	process(sys_clk)
---	begin
---		if rising_edge(sys_clk) then
---			if (samp_vld_d(2) = '1') and (underflow = '1') then
---				if err_out(49 downto 40) = "0000000000" or err_out(49 downto 40) = "1111111111" then
---					err_trunc(24 downto 16) <= err_out(40 downto 32);
---				elsif err_out(49) = '0' then
---					err_trunc(24 downto 16) <= "011111111";
---				elsif err_out(49) = '1' then
---					err_trunc(24 downto 16) <= "100000001";
---				end if;
---				err_trunc(15 downto 0) <= err(31 downto 16);
---				if (err_trunc >= HALF_ONE) then
---					err_sign_val <= std_logic_vector(signed(err_trunc) - signed(HALF_ONE));
---				end if;
---			end if;
---		end if;
---	end process; 
 
 
 END ARCH;

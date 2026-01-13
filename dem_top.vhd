@@ -65,6 +65,22 @@ architecture arch of dem_top is
 		);
 	end component;
 
+	component tll_track
+	port(
+			sys_clk		: in std_logic;
+			aresetn 	: in std_logic;
+			samp_vld	: in std_logic;
+			samp_i		: in std_logic_vector(8 downto 0);
+			samp_q		: in std_logic_vector(8 downto 0);
+			track_flag 	: in std_logic:='0';
+			en_sym 		: out std_logic;
+			sym_i		: out std_logic_vector(24 downto 0):= (others=>'0'); 
+			sym_q		: out std_logic_vector(24 downto 0):= (others=>'0'); 
+			dmu_out_vld : out std_logic:='0';
+			dmu_out		: out std_logic_vector(24 downto 0):= (others=>'0') 
+		);
+	end component;
+
 	component pll
 	port(
 			sys_clk		: in std_logic;
@@ -172,6 +188,9 @@ architecture arch of dem_top is
 	constant PLL_LOCKED_NUM		: unsigned(9 downto 0):=to_unsigned(256,10);
 	signal phase_diff_vld  		: std_logic:='0';
 	signal phase_diff_out  		: std_logic_vector(19 downto 0):=(others=>'0');
+
+
+
 	-- synthesis translate_off
 	file rec_8: text open write_mode is "D:\projects\46_high_speed_dem\sim\modelsim\agc_i.txt"; 
 	file rec_9: text open write_mode is "D:\projects\46_high_speed_dem\sim\modelsim\agc_q.txt"; 
@@ -195,16 +214,16 @@ begin
 				if sig_det_win = SIG_DET_WIN_LEN then
 					sig_det_win <= (others=>'0'); 
 					sig_occurs <= (others=>'0'); 
+					if (sig_occurs >= SIG_OCCUR_NUM) then
+						signal_present <= '1';
+					else
+						signal_present <= '0';
+					end if;
 				else
 					sig_det_win <= sig_det_win + 1;
 					if (signed(power_out) >= NOISE_POW) and (signed(error_exp) <= AGC_ERR_EXP) then
 						sig_occurs <= sig_occurs + 1;
 					end if;
-				end if;
-				if (sig_occurs >= SIG_OCCUR_NUM) then
-					signal_present <= '1';
-				else
-					signal_present <= '0';
 				end if;
 			end if;
 		end if;
@@ -222,16 +241,16 @@ begin
 				if tll_det_win = TLL_DET_WIN_LEN then
 					tll_det_win <= (others=>'0'); 
 					cnt_tll_locked <= (others=>'0'); 
+					if (cnt_tll_locked >= TLL_LOCKED_NUM) then
+						tll_locked <= '1';
+					else
+						tll_locked <= '0';
+					end if;
 				else
 					tll_det_win <= tll_det_win + 1;
 					if (abs(signed(dmu_out)) <= TLL_ERR_ABS) then
 						cnt_tll_locked <= cnt_tll_locked + 1;
 					end if;
-				end if;
-				if (cnt_tll_locked >= TLL_LOCKED_NUM) then
-					tll_locked <= '1';
-				else
-					tll_locked <= '0';
 				end if;
 			end if;
 		end if;
@@ -249,16 +268,16 @@ begin
 				if pll_det_win = PLL_DET_WIN_LEN then
 					pll_det_win <= (others=>'0'); 
 					cnt_pll_locked <= (others=>'0'); 
+					if (cnt_pll_locked >= PLL_LOCKED_NUM) then
+						pll_locked <= '1';
+					else
+						pll_locked <= '0';
+					end if;
 				else
 					pll_det_win <= pll_det_win + 1;
 					if (abs(signed(phase_diff_out)) <= PLL_ERR_ABS) then
 						cnt_pll_locked <= cnt_pll_locked + 1;
 					end if;
-				end if;
-				if (cnt_pll_locked >= PLL_LOCKED_NUM) then
-					pll_locked <= '1';
-				else
-					pll_locked <= '0';
 				end if;
 			end if;
 		end if;
@@ -281,7 +300,7 @@ begin
 						dem_sts <= st_track;
 					end if;
 				when st_track	 =>
-					if (pll_lost = '1') then
+					if (pll_locked = '0') then
 						dem_sts <= st_idle;
 					end if;
 				when others => null;
@@ -300,6 +319,9 @@ begin
 					aresetn_pll <= '0';
 					aresetn_tll <= '1';
 				when st_acq_pll  =>
+					aresetn_pll <= '1';
+					aresetn_tll <= '1';
+				when st_track  =>
 					aresetn_pll <= '1';
 					aresetn_tll <= '1';
 				when others => null;
