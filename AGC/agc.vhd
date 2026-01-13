@@ -27,7 +27,8 @@ entity agc is
 			wave_out_i 			: out std_logic_vector(15 downto 0);
 			wave_out_q 			: out std_logic_vector(15 downto 0);
 			power_out_o 		: out std_logic_vector(31 downto 0):=(others=>'0');
-			exp_gain_o 			: out std_logic_vector(31 downto 0):=(others=>'0')
+			exp_gain_o 			: out std_logic_vector(31 downto 0):=(others=>'0');
+			agc_error 			: out std_logic_vector(31 downto 0):=(others=>'0')
 		);
 end agc;
 architecture arch of agc is
@@ -245,6 +246,7 @@ architecture arch of agc is
 	attribute mark_debug : string;
 	attribute mark_debug of power_valid,  power_out,wave_i_fix_data,wave_q_fix_data,wave_dly	: signal is "TRUE";
 begin
+	agc_error <= e_data;
 	power_out_o <= power_out;
 	exp_gain_o <= exp_gain_cmp;
 

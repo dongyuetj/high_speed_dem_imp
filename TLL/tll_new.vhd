@@ -126,6 +126,8 @@ begin
 					yI_t(15 downto 0) <= std_logic_vector(yI(31 downto 16));
 					if underflow = '1' then
 						en_sym <= '1';
+						sym_i  <= xI_t;
+						sym_q  <= yI_t;
 					else
 						en_sym <= '0';
 					end if;

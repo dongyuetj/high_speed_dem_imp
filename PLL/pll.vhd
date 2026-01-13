@@ -23,7 +23,9 @@ entity pll is
 			euclidean_distance : out std_logic_vector(31 downto 0);
 			sym_sync_en 	: out std_logic:='0';
 			sym_sync_data_i	: out std_logic_vector(15 downto 0):=(others=>'0');
-			sym_sync_data_q	: out std_logic_vector(15 downto 0):=(others=>'0')
+			sym_sync_data_q	: out std_logic_vector(15 downto 0):=(others=>'0');
+			phase_diff_vld  : out std_logic:='0';
+			phase_diff_out  : out std_logic_vector(19 downto 0):=(others=>'0')
 		);
 end pll;
 
@@ -391,6 +393,9 @@ begin
 			phase_diff_valid <= ped_valid;
 		end if;
 	end process;
+
+	phase_diff_vld <= phase_diff_valid ;
+	phase_diff_out <= std_logic_vector(phase_diff);
 
 	process(sys_clk)
 	begin
