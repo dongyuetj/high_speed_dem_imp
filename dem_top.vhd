@@ -102,11 +102,22 @@ architecture arch of dem_top is
 		port (
 				 clk : in std_logic;
 				 probe_out0 : out std_logic_vector(2 downto 0);
-				 probe_out1 : out std_logic_vector(0 downto 0); 
+				 probe_out1 : out std_logic_vector(0 downto 0);
 				 probe_out2 : out std_logic_vector(1 downto 0);
-				 probe_out3 : out std_logic_vector(31 downto 0)
+				 probe_out3 : out std_logic_vector(31 downto 0);
+				 probe_out4 : out std_logic_vector(7 downto 0);
+				 probe_out5 : out std_logic_vector(7 downto 0);
+				 probe_out6 : out std_logic_vector(31 downto 0);
+				 probe_out7 : out std_logic_vector(7 downto 0);
+				 probe_out8 : out std_logic_vector(9 downto 0);
+				 probe_out9 : out std_logic_vector(24 downto 0);
+				 probe_out10 : out std_logic_vector(9 downto 0);
+				 probe_out11 : out std_logic_vector(9 downto 0);
+				 probe_out12 : out std_logic_vector(19 downto 0);
+				 probe_out13 : out std_logic_vector(9 downto 0) 
 			 );
 	end component;
+
 
 	signal agc_vld_t	: std_logic:='0';
 	signal agc_i_t		: std_logic_vector(15 downto 0):= (others=>'0');
@@ -154,42 +165,54 @@ architecture arch of dem_top is
 
 	type blind_dem_sts is (st_idle,st_acq_tll,st_acq_pll,st_track);
 	signal dem_sts : blind_dem_sts:=st_idle;
-
+--	constant SIG_DET_WIN_LEN	: unsigned(7 downto 0):=to_unsigned(255, 8);
+--	constant SIG_OCCUR_NUM		: unsigned(7 downto 0):=to_unsigned(64, 8);
+--	constant NOISE_POW			: signed(31 downto 0):=to_signed(10000*2, 32);
+--	constant AGC_ERR_EXP		: signed(7 downto 0):=to_signed(-6, 8); --2^(-6)
+--	constant TLL_DET_WIN_LEN 	: unsigned(9 downto 0):=to_unsigned(1023,10);
+--	constant TLL_ERR_ABS		: signed(24 downto 0):=to_signed(1300,25);
+--	constant TLL_LOCKED_NUM		: unsigned(9 downto 0):=to_unsigned(512,10);
+--	constant PLL_DET_WIN_LEN 	: unsigned(9 downto 0):=to_unsigned(1023,10);
+--	constant PLL_ERR_ABS		: signed(19 downto 0):=to_signed(200,20); --pi/128*2^13
+--	constant PLL_LOCKED_NUM		: unsigned(9 downto 0):=to_unsigned(200,10);
+	signal SIG_DET_WIN_LEN	: unsigned(7 downto 0):=to_unsigned(255, 8);
+	signal SIG_OCCUR_NUM	: unsigned(7 downto 0):=to_unsigned(64, 8);
+	signal NOISE_POW		: signed(31 downto 0):=to_signed(10000*2, 32);
+	signal AGC_ERR_EXP		: signed(7 downto 0):=to_signed(-6, 8); --2^(-6)
+	signal TLL_DET_WIN_LEN 	: unsigned(9 downto 0):=to_unsigned(1023,10);
+	signal TLL_ERR_ABS		: signed(24 downto 0):=to_signed(1300,25);
+	signal TLL_LOCKED_NUM	: unsigned(9 downto 0):=to_unsigned(512,10);
+	signal PLL_DET_WIN_LEN 	: unsigned(9 downto 0):=to_unsigned(1023,10);
+	signal PLL_ERR_ABS		: signed(19 downto 0):=to_signed(200,20); --pi/128*2^13
+	signal PLL_LOCKED_NUM	: unsigned(9 downto 0):=to_unsigned(200,10);
 	signal signal_present		: std_logic:='0';
 	signal pll_locked    		: std_logic:='0';
 	signal tll_locked			: std_logic:='0';
-	signal pll_lost  			: std_logic:='0';
 	signal agc_error 			: std_logic_vector(31 downto 0):=(others=>'0'); 
 	signal error_exp 			: signed(7 downto 0):=(others=>'0'); 
-
 	signal sig_det_win			: unsigned(7 downto 0):=(others=>'0'); 
 	signal sig_occurs			: unsigned(7 downto 0):=(others=>'0'); 
-
 	signal tll_det_win			: unsigned(9 downto 0):=(others=>'0'); 
 	signal cnt_tll_locked		: unsigned(9 downto 0):=(others=>'0'); 
-
 	signal pll_det_win			: unsigned(9 downto 0):=(others=>'0'); 
 	signal cnt_pll_locked		: unsigned(9 downto 0):=(others=>'0'); 
-
-	constant SIG_DET_WIN_LEN	: unsigned(7 downto 0):=to_unsigned(255, 8);
-	constant SIG_OCCUR_NUM		: unsigned(7 downto 0):=to_unsigned(64, 8);
-	constant NOISE_POW			: signed(31 downto 0):=to_signed(10000*2, 32);
-	constant AGC_ERR_EXP		: signed(7 downto 0):=to_signed(-6, 8); --2^(-6)
-                     		
 	signal dmu_out_vld 			: std_logic:='0';
 	signal dmu_out				: std_logic_vector(24 downto 0):=(others=>'0'); 
 
-	constant TLL_DET_WIN_LEN 	: unsigned(9 downto 0):=to_unsigned(1023,10);
-	constant TLL_ERR_ABS		: signed(24 downto 0):=to_signed(1300,25);
-	constant TLL_LOCKED_NUM		: unsigned(9 downto 0):=to_unsigned(512,10);
 
-	constant PLL_DET_WIN_LEN 	: unsigned(9 downto 0):=to_unsigned(1023,10);
-	constant PLL_ERR_ABS		: signed(19 downto 0):=to_signed(200,20); --pi/128*2^13
-	constant PLL_LOCKED_NUM		: unsigned(9 downto 0):=to_unsigned(256,10);
 	signal phase_diff_vld  		: std_logic:='0';
 	signal phase_diff_out  		: std_logic_vector(19 downto 0):=(others=>'0');
 
-
+	signal probe_out4 : std_logic_vector(7 downto 0):=(others=>'0');
+	signal probe_out5 : std_logic_vector(7 downto 0):=(others=>'0');
+	signal probe_out6 : std_logic_vector(31 downto 0):=(others=>'0');
+	signal probe_out7 : std_logic_vector(7 downto 0):=(others=>'0');
+	signal probe_out8 : std_logic_vector(9 downto 0):=(others=>'0');
+	signal probe_out9 : std_logic_vector(24 downto 0):=(others=>'0');
+	signal probe_out10 :std_logic_vector(9 downto 0):=(others=>'0');
+	signal probe_out11 :std_logic_vector(9 downto 0):=(others=>'0');
+	signal probe_out12 :std_logic_vector(19 downto 0):=(others=>'0');
+	signal probe_out13 :std_logic_vector(9 downto 0):=(others=>'0');
 
 	-- synthesis translate_off
 	file rec_8: text open write_mode is "D:\projects\46_high_speed_dem\sim\modelsim\agc_i.txt"; 
@@ -197,9 +220,42 @@ architecture arch of dem_top is
 	-- synthesis translate_on
 
 	attribute mark_debug : string;
-	attribute mark_debug of sym_sync_en,sym_sync_data_i,sym_sync_data_q: signal is "TRUE";
-
+	attribute mark_debug of sym_sync_en,sym_sync_data_i,sym_sync_data_q : signal is "TRUE";
+	attribute mark_debug of signal_present		 : signal is "TRUE"; 
+	attribute mark_debug of pll_locked    		 : signal is "TRUE";
+	attribute mark_debug of tll_locked			 : signal is "TRUE";
+	attribute mark_debug of agc_error 			 : signal is "TRUE";
+	attribute mark_debug of error_exp 			 : signal is "TRUE";
+	attribute mark_debug of sig_det_win			 : signal is "TRUE";
+	attribute mark_debug of sig_occurs			 : signal is "TRUE";
+	attribute mark_debug of tll_det_win			 : signal is "TRUE";
+	attribute mark_debug of cnt_tll_locked		 : signal is "TRUE";
+	attribute mark_debug of pll_det_win			 : signal is "TRUE";
+	attribute mark_debug of cnt_pll_locked		 : signal is "TRUE";
+	attribute mark_debug of dmu_out_vld 		 : signal is "TRUE";
+	attribute mark_debug of dmu_out				 : signal is "TRUE";
+	attribute mark_debug of agc_vld				 : signal is "TRUE";	
+	attribute mark_debug of agc_i				 : signal is "TRUE";	
+	attribute mark_debug of agc_q				 : signal is "TRUE";	
+	attribute mark_debug of en_sym 	             : signal is "TRUE";
+	attribute mark_debug of sym_i	             : signal is "TRUE";
+	attribute mark_debug of sym_q	             : signal is "TRUE";
+	attribute mark_debug of phase_diff_vld       : signal is "TRUE";
+	attribute mark_debug of phase_diff_out		 : signal is "TRUE";
+	attribute mark_debug of dem_sts				 : signal is "TRUE";
 begin
+
+
+	SIG_DET_WIN_LEN	<= unsigned(probe_out4);
+	SIG_OCCUR_NUM	<= unsigned(probe_out5);
+	NOISE_POW		<= signed(probe_out6); 
+	AGC_ERR_EXP		<= signed(probe_out7);
+	TLL_DET_WIN_LEN <= unsigned(probe_out8); 
+	TLL_ERR_ABS		<= signed(probe_out9); 
+	TLL_LOCKED_NUM	<= unsigned(probe_out10); 
+	PLL_DET_WIN_LEN <= unsigned(probe_out11);
+	PLL_ERR_ABS		<= signed(probe_out12);
+	PLL_LOCKED_NUM	<= unsigned(probe_out13); 
 
 	-- wait signal occurs and agc locked
 	process(sys_clk)
@@ -286,25 +342,29 @@ begin
 	process(sys_clk)
 	begin
 		if rising_edge(sys_clk) then
-			case dem_sts is
-				when st_idle	 =>
-					if (signal_present = '1') then
-						dem_sts <= st_acq_tll;
-					end if;
-				when st_acq_tll  =>
-					if (tll_locked = '1') then
-						dem_sts <= st_acq_pll;
-					end if;
-				when st_acq_pll  =>
-					if (pll_locked = '1') then
-						dem_sts <= st_track;
-					end if;
-				when st_track	 =>
-					if (pll_locked = '0') then
-						dem_sts <= st_idle;
-					end if;
-				when others => null;
-			end case;
+			if aresetn_agc = '0' then
+				dem_sts <= st_idle;
+			else 
+				case dem_sts is
+					when st_idle	 =>
+						if (signal_present = '1') then
+							dem_sts <= st_acq_tll;
+						end if;
+					when st_acq_tll  =>
+						if (tll_locked = '1') then
+							dem_sts <= st_acq_pll;
+						end if;
+					when st_acq_pll  =>
+						if (pll_locked = '1') then
+							dem_sts <= st_track;
+						end if;
+					when st_track	 =>
+						if (pll_locked = '0') then
+							dem_sts <= st_idle;
+						end if;
+					when others => null;
+				end case;
+			end if;
 		end if;
 	end process; 
 
@@ -344,7 +404,8 @@ begin
 	port map(
 			sys_clk			=> 	sys_clk			,
 			aresetn 		=> 	aresetn_agc 	,
-			log_ref  		=> 	x"408515B5"  	,
+			--log_ref  		=> 	x"408515B5"  	,
+			log_ref  		=> 	log_ref			,
 			wave_in_valid 	=>  ddc_vld			,	
 			wave_in_i 		=> 	ddc_i			,
 			wave_in_q		=> 	ddc_q			,
@@ -473,18 +534,28 @@ begin
 
 	u_vio_dem: vio_dem
 	port map(
-				 clk 		=> sys_clk				,
-				 probe_out0 => sym_type				,
-				 probe_out1 => aresetn_handset		,
-				 probe_out2 => pll_select			,
-				 probe_out3 => log_ref
+				 clk 		 => sys_clk				,
+				 probe_out0  => sym_type				,
+				 probe_out1  => aresetn_handset		,
+				 probe_out2  => pll_select			,
+				 probe_out3  => log_ref				,
+				 probe_out4  => probe_out4 				,
+				 probe_out5  => probe_out5 				,
+				 probe_out6  => probe_out6 				,
+				 probe_out7  => probe_out7 				,
+				 probe_out8  => probe_out8 				,
+				 probe_out9  => probe_out9 				,
+				 probe_out10 => probe_out10				,
+				 probe_out11 => probe_out11				,
+				 probe_out12 => probe_out12				,
+				 probe_out13 => probe_out13				
 			 );
 
 	u_pll: pll
 	port map(
 				sys_clk				=> sys_clk				, 
 				aresetn 			=> aresetn_pll			, 
-				sym_type			=> "001"				,
+				sym_type			=> sym_type				,
 				en_sym				=> en_sym 				, 
 				sym_i				=> sym_i(24 downto 9)	,   
 				sym_q				=> sym_q(24 downto 9)	,   
