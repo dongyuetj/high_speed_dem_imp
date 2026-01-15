@@ -65,22 +65,6 @@ architecture arch of dem_top is
 		);
 	end component;
 
-	component tll_track
-	port(
-			sys_clk		: in std_logic;
-			aresetn 	: in std_logic;
-			samp_vld	: in std_logic;
-			samp_i		: in std_logic_vector(8 downto 0);
-			samp_q		: in std_logic_vector(8 downto 0);
-			track_flag 	: in std_logic:='0';
-			en_sym 		: out std_logic;
-			sym_i		: out std_logic_vector(24 downto 0):= (others=>'0'); 
-			sym_q		: out std_logic_vector(24 downto 0):= (others=>'0'); 
-			dmu_out_vld : out std_logic:='0';
-			dmu_out		: out std_logic_vector(24 downto 0):= (others=>'0') 
-		);
-	end component;
-
 	component pll
 	port(
 			sys_clk		: in std_logic;
@@ -163,8 +147,8 @@ architecture arch of dem_top is
 	signal aresetn_tll				: std_logic:='0';
 	signal aresetn_pll				: std_logic:='0';
 
-	type blind_dem_sts is (st_idle,st_acq_tll,st_acq_pll,st_track);
-	signal dem_sts : blind_dem_sts:=st_idle;
+	type blind_dem_sts is (st_idle,st_acq_tll,st_acq_pll);
+	signal dem_sts 				: blind_dem_sts:=st_idle;
 --	constant SIG_DET_WIN_LEN	: unsigned(7 downto 0):=to_unsigned(255, 8);
 --	constant SIG_OCCUR_NUM		: unsigned(7 downto 0):=to_unsigned(64, 8);
 --	constant NOISE_POW			: signed(31 downto 0):=to_signed(10000*2, 32);
@@ -219,6 +203,9 @@ architecture arch of dem_top is
 	file rec_9: text open write_mode is "D:\projects\46_high_speed_dem\sim\modelsim\agc_q.txt"; 
 	-- synthesis translate_on
 
+	attribute fsm_encoding : string;
+	attribute fsm_encoding of dem_sts : signal is "sequential";
+	
 	attribute mark_debug : string;
 	attribute mark_debug of sym_sync_en,sym_sync_data_i,sym_sync_data_q : signal is "TRUE";
 	attribute mark_debug of signal_present		 : signal is "TRUE"; 
@@ -243,6 +230,9 @@ architecture arch of dem_top is
 	attribute mark_debug of phase_diff_vld       : signal is "TRUE";
 	attribute mark_debug of phase_diff_out		 : signal is "TRUE";
 	attribute mark_debug of dem_sts				 : signal is "TRUE";
+	attribute mark_debug of aresetn_agc			 : signal is "TRUE";
+	attribute mark_debug of aresetn_tll			 : signal is "TRUE";
+	attribute mark_debug of aresetn_pll			 : signal is "TRUE";
 begin
 
 
@@ -285,86 +275,43 @@ begin
 		end if;
 	end process; 
 
-	-- wait TLL locked
 	process(sys_clk)
 	begin
 		if rising_edge(sys_clk) then
-			if aresetn_tll = '0' then
-				tll_det_win <= (others=>'0'); 
-				cnt_tll_locked <= (others=>'0'); 
-				tll_locked <= '0';
-			elsif (dmu_out_vld = '1') then
-				if tll_det_win = TLL_DET_WIN_LEN then
-					tll_det_win <= (others=>'0'); 
-					cnt_tll_locked <= (others=>'0'); 
-					if (cnt_tll_locked >= TLL_LOCKED_NUM) then
-						tll_locked <= '1';
-					else
-						tll_locked <= '0';
+			case dem_sts is
+				when st_idle	 =>
+					if aresetn_agc = '0' then
+						dem_sts <= st_idle;
+					elsif (signal_present = '1') then
+						dem_sts <= st_acq_tll;
 					end if;
-				else
-					tll_det_win <= tll_det_win + 1;
-					if (abs(signed(dmu_out)) <= TLL_ERR_ABS) then
-						cnt_tll_locked <= cnt_tll_locked + 1;
+				when st_acq_tll  =>
+					if aresetn_agc = '0' then
+						dem_sts <= st_idle;
+					elsif (dmu_out_vld = '1') then
+						if tll_det_win = TLL_DET_WIN_LEN then
+							if (cnt_tll_locked < TLL_LOCKED_NUM) then
+								dem_sts <= st_idle;
+							else
+								dem_sts <= st_acq_pll;
+							end if;
+						end if;
 					end if;
-				end if;
-			end if;
-		end if;
-	end process; 
-
-	-- wait PLL locked
-	process(sys_clk)
-	begin
-		if rising_edge(sys_clk) then
-			if aresetn_pll = '0' then
-				pll_det_win <= (others=>'0'); 
-				cnt_pll_locked <= (others=>'0'); 
-				pll_locked <= '0';
-			elsif (phase_diff_vld = '1') then
-				if pll_det_win = PLL_DET_WIN_LEN then
-					pll_det_win <= (others=>'0'); 
-					cnt_pll_locked <= (others=>'0'); 
-					if (cnt_pll_locked >= PLL_LOCKED_NUM) then
-						pll_locked <= '1';
-					else
-						pll_locked <= '0';
+				when st_acq_pll  =>
+					if aresetn_agc = '0' then
+						dem_sts <= st_idle;
+					elsif (phase_diff_vld = '1') then
+						if pll_det_win = PLL_DET_WIN_LEN then
+							if (cnt_pll_locked < PLL_LOCKED_NUM) then
+								dem_sts <= st_idle;
+							end if;
+						end if;
 					end if;
-				else
-					pll_det_win <= pll_det_win + 1;
-					if (abs(signed(phase_diff_out)) <= PLL_ERR_ABS) then
-						cnt_pll_locked <= cnt_pll_locked + 1;
+				when others =>
+					if aresetn_agc = '0' then
+						dem_sts <= st_idle;
 					end if;
-				end if;
-			end if;
-		end if;
-	end process;
-
-	process(sys_clk)
-	begin
-		if rising_edge(sys_clk) then
-			if aresetn_agc = '0' then
-				dem_sts <= st_idle;
-			else 
-				case dem_sts is
-					when st_idle	 =>
-						if (signal_present = '1') then
-							dem_sts <= st_acq_tll;
-						end if;
-					when st_acq_tll  =>
-						if (tll_locked = '1') then
-							dem_sts <= st_acq_pll;
-						end if;
-					when st_acq_pll  =>
-						if (pll_locked = '1') then
-							dem_sts <= st_track;
-						end if;
-					when st_track	 =>
-						if (pll_locked = '0') then
-							dem_sts <= st_idle;
-						end if;
-					when others => null;
-				end case;
-			end if;
+			end case;
 		end if;
 	end process; 
 
@@ -373,17 +320,58 @@ begin
 		if rising_edge(sys_clk) then
 			case dem_sts is
 				when st_idle	 =>
+					tll_det_win <= (others=>'0'); 
+					cnt_tll_locked <= (others=>'0'); 
+					tll_locked <= '0';
+					pll_det_win <= (others=>'0'); 
+					cnt_pll_locked <= (others=>'0'); 
+					pll_locked <= '0';
 					aresetn_pll <= '0';
-					aresetn_tll <= '0';
+					if aresetn_agc = '0' then
+						aresetn_tll <= '0';
+					elsif (signal_present = '1') then
+						aresetn_tll <= '1';
+					else
+						aresetn_tll <= '0';
+					end if;
 				when st_acq_tll	 =>
-					aresetn_pll <= '0';
-					aresetn_tll <= '1';
+					-- wait TLL locked
+					if (dmu_out_vld = '1') then
+						if tll_det_win = TLL_DET_WIN_LEN then
+							tll_det_win <= (others=>'0'); 
+							cnt_tll_locked <= (others=>'0'); 
+							if (cnt_tll_locked >= TLL_LOCKED_NUM) then
+								tll_locked <= '1';
+								aresetn_pll <= '1';
+							else
+								tll_locked <= '0';
+								aresetn_pll <= '0';
+							end if;
+						else
+							tll_det_win <= tll_det_win + 1;
+							if (abs(signed(dmu_out)) <= TLL_ERR_ABS) then
+								cnt_tll_locked <= cnt_tll_locked + 1;
+							end if;
+						end if;
+					end if;
 				when st_acq_pll  =>
-					aresetn_pll <= '1';
-					aresetn_tll <= '1';
-				when st_track  =>
-					aresetn_pll <= '1';
-					aresetn_tll <= '1';
+					-- wait PLL locked
+					if (phase_diff_vld = '1') then
+						if pll_det_win = PLL_DET_WIN_LEN then
+							pll_det_win <= (others=>'0'); 
+							cnt_pll_locked <= (others=>'0'); 
+							if (cnt_pll_locked >= PLL_LOCKED_NUM) then
+								pll_locked <= '1';
+							else
+								pll_locked <= '0';
+							end if;
+						else
+							pll_det_win <= pll_det_win + 1;
+							if (abs(signed(phase_diff_out)) <= PLL_ERR_ABS) then
+								cnt_pll_locked <= cnt_pll_locked + 1;
+							end if;
+						end if;
+					end if;
 				when others => null;
 			end case;
 		end if;
@@ -570,10 +558,14 @@ begin
 	process(sys_clk)
 	begin
 		if rising_edge(sys_clk) then
-			dem_vld <= sym_sync_en;
-			dem_sym_i <= sym_sync_data_i;
-			dem_sym_q <= sym_sync_data_q;
-			dem_bit(1 downto 0) <= sym_sync_data_i(sym_sync_data_i'high) & sym_sync_data_q(sym_sync_data_q'high) ;
+			if pll_locked = '1' then
+				dem_vld <= sym_sync_en;
+				dem_sym_i <= sym_sync_data_i;
+				dem_sym_q <= sym_sync_data_q;
+				dem_bit(1 downto 0) <= sym_sync_data_i(sym_sync_data_i'high) & sym_sync_data_q(sym_sync_data_q'high) ;
+			else
+				dem_vld <= '0';
+			end if;
 		end if;
 	end process; 
 
