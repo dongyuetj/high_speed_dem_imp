@@ -64,8 +64,8 @@ architecture Behavioral of tb_tll is
 	signal en_sym 					: std_logic:='0';
 	signal sym_i					: std_logic_vector(24 downto 0):=(others=>'0');
 	signal sym_q					: std_logic_vector(24 downto 0):=(others=>'0');
-	file rec_r_i: text open read_mode is "D:\projects\46_high_speed_dem\sim\modelsim\agc_i_sim.txt";
-	file rec_r_q: text open read_mode is "D:\projects\46_high_speed_dem\sim\modelsim\agc_q_sim.txt";
+	file rec_r_i: text open read_mode is "D:\projects\46_high_speed_dem\sim\ila\ila_i.txt";
+	file rec_r_q: text open read_mode is "D:\projects\46_high_speed_dem\sim\ila\ila_q.txt";
 	file rec_2: text open write_mode is "D:\projects\46_high_speed_dem\sim\modelsim\timing_sym_i.txt"; 
 	file rec_3: text open write_mode is "D:\projects\46_high_speed_dem\sim\modelsim\timing_sym_q.txt"; 
 begin
@@ -122,7 +122,7 @@ begin
 	process(sys_clk)
 	begin
 		if rising_edge(sys_clk) then
-			if cnt_div_4 = 48-1 then
+			if cnt_div_4 = 128-1 then
 				cnt_div_4 <= (others=>'0');
 				samp_vld <= '1';
 			else
