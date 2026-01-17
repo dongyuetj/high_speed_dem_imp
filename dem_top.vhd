@@ -116,7 +116,7 @@ architecture arch of dem_top is
 	signal en_sym 		: std_logic;
 	signal sym_i		: std_logic_vector(24 downto 0):=(others=>'0');
 	signal sym_q		: std_logic_vector(24 downto 0):=(others=>'0');
-	signal sym_type		: std_logic_vector(2 downto 0):="101";
+	signal sym_type		: std_logic_vector(2 downto 0):="001";
 
 	signal pll_select   : std_logic_vector(1 downto 0):=(others=>'0'); 
 
@@ -392,47 +392,6 @@ begin
 		end if;
 	end process; 
 
-	u_agc: agc
-	port map(
-			sys_clk			=> 	sys_clk			,
-			aresetn 		=> 	aresetn_agc 	,
-			--log_ref  		=> 	x"408515B5"  	,
-			log_ref  		=> 	log_ref			,
-			wave_in_valid 	=>  ddc_vld			,	
-			wave_in_i 		=> 	ddc_i			,
-			wave_in_q		=> 	ddc_q			,
-			wave_out_valid 	=> 	agc_vld_t 		,
-			wave_out_i 		=> 	agc_i_t 		,
-			wave_out_q 		=> 	agc_q_t 		,
-			power_out_o 	=> 	power_out		,
-			exp_gain_o 		=> 	exp_gain		,
-			agc_error 		=>  agc_error
-		);
-
-	-- synthesis translate_off
-	process(sys_clk)
-		variable buf: LINE;
-	begin
-		if rising_edge(sys_clk) then
-			if agc_vld_t = '1' then
-				write(buf,to_integer(signed(agc_i_t)));
-				writeline(rec_8,buf);
-			end if;
-		end if;
-	end process;
-
-	process(sys_clk)
-		variable buf: LINE;
-	begin
-		if rising_edge(sys_clk) then
-			if agc_vld_t = '1' then
-				write(buf,to_integer(signed(agc_q_t)));
-				writeline(rec_9,buf);
-			end if;
-		end if;
-	end process;
-	-- synthesis translate_on
-
 	process(sys_clk)
 	begin
 		if rising_edge(sys_clk) then
@@ -473,18 +432,19 @@ begin
 						agc_q 	<= "011111111";
 					end if;
 				else
-					if agc_c(26 downto 19) = x"00" or agc_c(26 downto 19) = x"FF" then 
-						agc_i 	<= std_logic_vector(signed(agc_c(19 downto 11)));
-					elsif agc_c(26) = '1' then
+					-- REF is 64
+					if agc_c(31 downto 14) = "000000000000000000" or agc_c(31 downto 14) = "111111111111111111" then 
+						agc_i 	<= std_logic_vector(signed(agc_c(14 downto 6)));
+					elsif agc_c(31) = '1' then
 						agc_i 	<= "100000000";
-					elsif agc_c(26) = '0' then
+					elsif agc_c(31) = '0' then
 						agc_i 	<= "011111111";
 					end if;
-					if agc_s(26 downto 19) = x"00" or agc_s(26 downto 19) = x"FF" then 
-						agc_q 	<= std_logic_vector(signed(agc_s(19 downto 11)));
-					elsif agc_s(26) = '1' then
+					if agc_s(31 downto 14) = "000000000000000000" or agc_s(31 downto 14) = "111111111111111111" then 
+						agc_q 	<= std_logic_vector(signed(agc_s(14 downto 6)));
+					elsif agc_s(31) = '1' then
 						agc_q 	<= "100000000";
-					elsif agc_s(26) = '0' then
+					elsif agc_s(31) = '0' then
 						agc_q 	<= "011111111";
 					end if;
 				end if;
@@ -493,6 +453,47 @@ begin
 			end if;
 		end if;
 	end process; 
+
+	u_agc: agc
+	port map(
+			sys_clk			=> 	sys_clk			,
+			aresetn 		=> 	aresetn_agc 	,
+			--log_ref  		=> 	x"408515B5"  	,
+			log_ref  		=> 	log_ref			,
+			wave_in_valid 	=>  ddc_vld			,	
+			wave_in_i 		=> 	ddc_i			,
+			wave_in_q		=> 	ddc_q			,
+			wave_out_valid 	=> 	agc_vld_t 		,
+			wave_out_i 		=> 	agc_i_t 		,
+			wave_out_q 		=> 	agc_q_t 		,
+			power_out_o 	=> 	power_out		,
+			exp_gain_o 		=> 	exp_gain		,
+			agc_error 		=>  agc_error
+		);
+
+	-- synthesis translate_off
+	process(sys_clk)
+		variable buf: LINE;
+	begin
+		if rising_edge(sys_clk) then
+			if agc_vld_t = '1' then
+				write(buf,to_integer(signed(agc_i_t)));
+				writeline(rec_8,buf);
+			end if;
+		end if;
+	end process;
+
+	process(sys_clk)
+		variable buf: LINE;
+	begin
+		if rising_edge(sys_clk) then
+			if agc_vld_t = '1' then
+				write(buf,to_integer(signed(agc_q_t)));
+				writeline(rec_9,buf);
+			end if;
+		end if;
+	end process;
+	-- synthesis translate_on
 
 	u_tll_new: tll_newer
 	port map(

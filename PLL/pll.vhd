@@ -389,9 +389,11 @@ begin
 		if rising_edge(sys_clk) then
 			if phase_diff_valid = '1' then
 				if phase_diff > PI_POS_UNWRAP then
-					phase_diff_wrap <= phase_diff + PI_NEG_UNWRAP + PI_NEG_UNWRAP;
+					--phase_diff_wrap <= phase_diff + PI_NEG_UNWRAP + PI_NEG_UNWRAP;
+					phase_diff_wrap <= PI_NEG_UNWRAP;
 				elsif phase_diff < PI_NEG_UNWRAP then
-					phase_diff_wrap <= phase_diff + PI_POS_UNWRAP + PI_POS_UNWRAP;
+					--phase_diff_wrap <= phase_diff + PI_POS_UNWRAP + PI_POS_UNWRAP;
+					phase_diff_wrap <= PI_POS_UNWRAP;
 				else
 					phase_diff_wrap <= phase_diff;
 				end if;
