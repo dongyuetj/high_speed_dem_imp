@@ -85,14 +85,13 @@ architecture arch of pll is
 	signal ped_data							: std_logic_vector(15 downto 0):=(others=>'0');
 
 	signal phase_diff_valid					: std_logic := '0';
-	signal phase_diff_wrap_valid 			: std_logic := '0';
-	signal phase_diff_wrap_valid_d0			: std_logic := '0';
 	signal div_valid						: std_logic := '0';
 	signal p_div_valid						: std_logic := '0';
 	signal intg_valid						: std_logic := '0';
-	signal intg_wrap_valid					: std_logic := '0';
 	signal loop_flt_valid					: std_logic := '0';
-	signal loop_flt_wrap_valid				: std_logic := '0';
+
+	signal phase_diff_wrap_valid			: std_logic := '0';
+	signal phase_diff_wrap					: signed(19 downto 0):=(others=>'0'); 
 	signal phase_int_valid					: std_logic := '0';
 	signal phase_int_wrap_valid				: std_logic := '0';
 
@@ -120,7 +119,6 @@ architecture arch of pll is
 	attribute mark_debug : string;
 	attribute mark_debug of phase_valid 				: signal is "TRUE";	
 	attribute mark_debug of phase_data 					: signal is "TRUE";	
-	attribute mark_debug of cartesian_data 				: signal is "TRUE";	
 	attribute mark_debug of rotator_valid				: signal is "TRUE";	
 	attribute mark_debug of rotator_data				: signal is "TRUE";	
 	attribute mark_debug of en_sym_rotate				: signal is "TRUE";	
@@ -132,23 +130,12 @@ architecture arch of pll is
 	attribute mark_debug of ped_valid					: signal is "TRUE";	
 	attribute mark_debug of ped_data					: signal is "TRUE";	
 	attribute mark_debug of phase_diff_valid			: signal is "TRUE";	
-	attribute mark_debug of phase_diff_wrap_valid 		: signal is "TRUE";	
-	attribute mark_debug of phase_diff_wrap_valid_d0	: signal is "TRUE";	
-	attribute mark_debug of div_valid					: signal is "TRUE";	
-	attribute mark_debug of p_div_valid					: signal is "TRUE";	
-	attribute mark_debug of intg_valid					: signal is "TRUE";	
-	attribute mark_debug of intg_wrap_valid				: signal is "TRUE";	
-	attribute mark_debug of loop_flt_valid				: signal is "TRUE";	
-	attribute mark_debug of loop_flt_wrap_valid			: signal is "TRUE";	
-	attribute mark_debug of phase_int_valid				: signal is "TRUE";	
-	attribute mark_debug of phase_int_wrap_valid		: signal is "TRUE";	
 	attribute mark_debug of phase_diff					: signal is "TRUE";	
-	attribute mark_debug of div2,div4					: signal is "TRUE";	
-	attribute mark_debug of p1							: signal is "TRUE";	
-	attribute mark_debug of p2							: signal is "TRUE";	
-	attribute mark_debug of integral_part 				: signal is "TRUE";	
+	attribute mark_debug of loop_flt_valid				: signal is "TRUE";	
 	attribute mark_debug of loop_flt 					: signal is "TRUE";	
+	attribute mark_debug of phase_int_valid				: signal is "TRUE";	
 	attribute mark_debug of phase_int 					: signal is "TRUE";	
+	attribute mark_debug of phase_int_wrap_valid		: signal is "TRUE";	
 	attribute mark_debug of phase_int_wrap 				: signal is "TRUE";	
 begin
 	euclidean_distance <= std_logic_vector(min_data);
@@ -201,7 +188,7 @@ begin
 				s_axis_cartesian_tvalid <= '0';
 				s_axis_cartesian_tdata <= (others=>'0');
 				phase_in <= (others=>'0');
-				shift_flag <= '0';
+				--shift_flag <= '0';
 				complex_flag <= '0';
 			else
 				if en_sym_rotate = '1' then
@@ -217,13 +204,13 @@ begin
 				end if; 
 				case sym_type is
 					when "000" => --BPSK
-						case sym_i_rotate(sym_i_rotate'high) is
-							when '0' =>
-								phase_in <= (others=>'0');
-							when '1' =>
-								phase_in <= PI_POS;
-							when others => null;
-						end case;
+						if sym_i_rotate(sym_i_rotate'high) = '0' then
+							phase_in <= (others=>'0');
+						elsif sym_q_rotate(sym_q_rotate'high) = '0' then
+							phase_in <= PI_POS;
+						else
+							phase_in <= PI_NEG;
+						end if;
 					when "001" => --QPSK
 						case iq_sign is
 							when "00" => -- ++
@@ -394,17 +381,33 @@ begin
 		end if;
 	end process;
 
-	phase_diff_vld <= phase_diff_valid ;
-	phase_diff_out <= std_logic_vector(phase_diff);
+	phase_diff_vld <= phase_diff_wrap_valid ;
+	phase_diff_out <= std_logic_vector(phase_diff_wrap);
 
 	process(sys_clk)
 	begin
 		if rising_edge(sys_clk) then
 			if phase_diff_valid = '1' then
-				div2 <= phase_diff(phase_diff'high)&phase_diff(phase_diff'high)&phase_diff(phase_diff'high downto 2);
-				div4 <= phase_diff(phase_diff'high)&phase_diff(phase_diff'high)&phase_diff(phase_diff'high)&phase_diff(phase_diff'high)&phase_diff(phase_diff'high downto 4);
+				if phase_diff > PI_POS_UNWRAP then
+					phase_diff_wrap <= phase_diff + PI_NEG_UNWRAP + PI_NEG_UNWRAP;
+				elsif phase_diff < PI_NEG_UNWRAP then
+					phase_diff_wrap <= phase_diff + PI_POS_UNWRAP + PI_POS_UNWRAP;
+				else
+					phase_diff_wrap <= phase_diff;
+				end if;
 			end if;
-			div_valid <= phase_diff_valid;
+			phase_diff_wrap_valid <= phase_diff_valid;
+		end if;
+	end process; 
+
+	process(sys_clk)
+	begin
+		if rising_edge(sys_clk) then
+			if phase_diff_wrap_valid = '1' then
+				div2 <= phase_diff_wrap(phase_diff_wrap'high)&phase_diff_wrap(phase_diff_wrap'high)&phase_diff_wrap(phase_diff_wrap'high downto 2);
+				div4 <= phase_diff_wrap(phase_diff_wrap'high)&phase_diff_wrap(phase_diff_wrap'high)&phase_diff_wrap(phase_diff_wrap'high)&phase_diff_wrap(phase_diff_wrap'high)&phase_diff_wrap(phase_diff_wrap'high downto 4);
+			end if;
+			div_valid <= phase_diff_wrap_valid;
 		end if;
 	end process;
 

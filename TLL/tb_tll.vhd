@@ -122,7 +122,7 @@ begin
 	process(sys_clk)
 	begin
 		if rising_edge(sys_clk) then
-			if cnt_div_4 = 128-1 then
+			if cnt_div_4 = 64-1 then
 				cnt_div_4 <= (others=>'0');
 				samp_vld <= '1';
 			else

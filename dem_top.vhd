@@ -116,7 +116,7 @@ architecture arch of dem_top is
 	signal en_sym 		: std_logic;
 	signal sym_i		: std_logic_vector(24 downto 0):=(others=>'0');
 	signal sym_q		: std_logic_vector(24 downto 0):=(others=>'0');
-	signal sym_type		: std_logic_vector(2 downto 0):=(others=>'0'); 
+	signal sym_type		: std_logic_vector(2 downto 0):="101";
 
 	signal pll_select   : std_logic_vector(1 downto 0):=(others=>'0'); 
 
@@ -435,19 +435,12 @@ begin
 			if agc_vld_t = '1' then 		
 				agc_i_d(0) <= agc_i_t;	
 				agc_i_d(1) <= agc_i_d(0);	
-				agc_i_d(2) <= agc_i_d(1);	
-				agc_i_d(3) <= agc_i_d(2);	
 				agc_q_d(0) <= agc_q_t;	
 				agc_q_d(1) <= agc_q_d(0);	
-				agc_q_d(2) <= agc_q_d(1);	
-				agc_q_d(3) <= agc_q_d(2);	
-
-				p1 <= signed(agc_i_d(3)) * signed(agc_i_t);	
-				p2 <= signed(agc_q_d(3)) * signed(agc_q_t);	
-
-				p3 <= signed(agc_i_d(3)) * signed(agc_q_t);	
-				p4 <= signed(agc_q_d(3)) * signed(agc_i_t);	
-
+				p1 <= signed(agc_i_d(1)) * signed(agc_i_t);	
+				p2 <= signed(agc_q_d(1)) * signed(agc_q_t);	
+				p3 <= signed(agc_i_d(1)) * signed(agc_q_t);	
+				p4 <= signed(agc_q_d(1)) * signed(agc_i_t);	
 				agc_c <= p1 + p2;
 				agc_s <= p3 - p4;
 
@@ -523,7 +516,8 @@ begin
 	u_vio_dem: vio_dem
 	port map(
 				 clk 		 => sys_clk				,
-				 probe_out0  => sym_type				,
+				 probe_out0  => open				,
+	--			 probe_out0  => sym_type			,
 				 probe_out1  => aresetn_handset		,
 				 probe_out2  => pll_select			,
 				 probe_out3  => log_ref				,

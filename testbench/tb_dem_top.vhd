@@ -41,8 +41,8 @@ architecture Behavioral of tb_demod is
 	signal	dem_sym_i		: std_logic_vector(15 downto 0):= (others=>'0');
 	signal	dem_sym_q		: std_logic_vector(15 downto 0):= (others=>'0');
 	signal	dem_bit 		: std_logic_vector(7 downto 0):= (others=>'0');
-	file rec_r_i: text open read_mode is "D:\projects\46_high_speed_dem\sim\dem_real_signal\real_i.txt";
-	file rec_r_q: text open read_mode is "D:\projects\46_high_speed_dem\sim\dem_real_signal\imag_i.txt";
+	file rec_r_i: text open read_mode is "D:\projects\46_high_speed_dem\sim\modelsim\sim_i.txt";
+	file rec_r_q: text open read_mode is "D:\projects\46_high_speed_dem\sim\modelsim\sim_q.txt";
 	file rec_2: text open write_mode is "D:\projects\46_high_speed_dem\sim\modelsim\dem_sym_i.txt"; 
 	file rec_3: text open write_mode is "D:\projects\46_high_speed_dem\sim\modelsim\dem_sym_q.txt"; 
 	
@@ -101,7 +101,7 @@ begin
 	process(sys_clk)
 	begin
 		if rising_edge(sys_clk) then
-			if cnt_div_4 = 128-1 then
+			if cnt_div_4 = 256-1 then
 				cnt_div_4 <= (others=>'0');
 				ddc_vld <= '1';
 			else
