@@ -199,6 +199,10 @@ architecture arch of dem_top is
 	signal probe_out13 :std_logic_vector(9 downto 0):=(others=>'0');
 
 	-- synthesis translate_off
+	file rec_4: text open write_mode is "D:\projects\46_high_speed_dem\sim\modelsim\sync_sym_i.txt"; 
+	file rec_5: text open write_mode is "D:\projects\46_high_speed_dem\sim\modelsim\sync_sym_q.txt"; 
+	file rec_6: text open write_mode is "D:\projects\46_high_speed_dem\sim\modelsim\sym_i.txt"; 
+	file rec_7: text open write_mode is "D:\projects\46_high_speed_dem\sim\modelsim\sym_q.txt"; 
 	file rec_8: text open write_mode is "D:\projects\46_high_speed_dem\sim\modelsim\agc_i.txt"; 
 	file rec_9: text open write_mode is "D:\projects\46_high_speed_dem\sim\modelsim\agc_q.txt"; 
 	-- synthesis translate_on
@@ -504,6 +508,31 @@ begin
 			dmu_out			=> dmu_out						
 		);
 
+	-- synthesis translate_off
+	process(sys_clk)
+		variable buf: LINE;
+	begin
+		if rising_edge(sys_clk) then
+			if en_sym = '1' then
+				write(buf,to_integer(signed(sym_i)));
+				writeline(rec_6,buf);
+			end if;
+		end if;
+	end process;
+
+	process(sys_clk)
+		variable buf: LINE;
+	begin
+		if rising_edge(sys_clk) then
+			if en_sym = '1' then
+				write(buf,to_integer(signed(sym_q)));
+				writeline(rec_7,buf);
+			end if;
+		end if;
+	end process;
+	-- synthesis translate_on
+
+
 	-- sym_type 
 	-- 000: BPSK
 	-- 001: QPSK
@@ -562,5 +591,29 @@ begin
 			end if;
 		end if;
 	end process; 
+
+	-- synthesis translate_off
+	process(sys_clk)
+		variable buf: LINE;
+	begin
+		if rising_edge(sys_clk) then
+			if sym_sync_en = '1' then
+				write(buf,to_integer(signed(sym_sync_data_i)));
+				writeline(rec_4,buf);
+			end if;
+		end if;
+	end process;
+
+	process(sys_clk)
+		variable buf: LINE;
+	begin
+		if rising_edge(sys_clk) then
+			if sym_sync_en = '1' then
+				write(buf,to_integer(signed(sym_sync_data_q)));
+				writeline(rec_5,buf);
+			end if;
+		end if;
+	end process;
+	-- synthesis translate_on
 
 end arch;

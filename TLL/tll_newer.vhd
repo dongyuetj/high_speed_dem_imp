@@ -66,8 +66,8 @@ architecture arch of tll_newer is
 	signal samp_q_q		: std_logic_vector(24 downto 0):=(others=>'0');
 	signal samp_i_d		: std_logic_vector(24 downto 0):=(others=>'0');
 	signal samp_q_d		: std_logic_vector(24 downto 0):=(others=>'0');
-	signal cnt			: signed(24 downto 0):=ONE;
-	signal mu			: signed(24 downto 0):=HALF_ONE;
+	signal cnt			: signed(24 downto 0):=MINIMAL;
+	signal mu			: signed(24 downto 0):=(others=>'0'); 
 --	signal mu_next  	: signed(24 downto 0):=HALF_ONE;
 	signal dmu		  	: signed(24 downto 0):=(others=>'0'); 
 	signal TED_buff_x	: signed_array_25(1 downto 0):=(others=>(others=>'0'));
@@ -109,7 +109,11 @@ begin
 	process(sys_clk)
 	begin
 		if rising_edge(sys_clk) then
-			samp_vld_d <= samp_vld_d(samp_vld_d'high-1 downto 0) & samp_vld ;
+			if aresetn = '0' then
+				samp_vld_d <= (others=>'0'); 
+			else
+				samp_vld_d <= samp_vld_d(samp_vld_d'high-1 downto 0) & samp_vld ;
+			end if;
 		end if;
 	end process;
 
@@ -117,7 +121,12 @@ begin
 	process(sys_clk)
 	begin
 		if rising_edge(sys_clk) then
-			if samp_vld = '1' then 
+			if aresetn = '0' then
+				samp_i_q <= (others=>'0');
+				samp_q_q <= (others=>'0');
+				samp_i_d <= (others=>'0');
+				samp_q_d <= (others=>'0');
+			elsif samp_vld = '1' then 
 				samp_i_q(24 downto 16) <= samp_i(8 downto 0);
 				samp_q_q(24 downto 16) <= samp_q(8 downto 0);
 				samp_i_q(15 downto 0) <= (others=>'0'); 
@@ -202,7 +211,6 @@ begin
 				err_y <= (others=>'0'); 
 				sym_i <= (others=>'0'); 
 				sym_q <= (others=>'0'); 
-				underflow <= '1';
 			else
 				if (samp_vld_d(4) = '1') and (underflow = '1') then
 					diff_x <= (TED_buff_x(1) - xI_t);
@@ -355,15 +363,15 @@ begin
 		if rising_edge(sys_clk) then
 			if aresetn = '0' then
 				--cnt_next <= ONE;
-				cnt <= ONE;
-				mu  <= HALF_ONE;
+				cnt <= MINIMAL;
+				mu  <= (others=>'0'); 
 				--mu_next <= HALF_ONE;
 				dmu <= (others=>'0'); 
 				underflow <= '1';
 				div_vld_d 	<= '0';
 			else
 				div_vld_d <= div_vld;
-				if div_vld = '1' then
+				if (div_vld = '1') and (div_vld_d = '0') then
 					if cnt < W then
 						-- update cnt
 						cnt <= ONE + cnt - W;
