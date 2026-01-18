@@ -211,7 +211,7 @@ begin
 						else
 							phase_in <= PI_NEG;
 						end if;
-					when "001" => --QPSK
+					when "001" | "010" => --QPSK/OQPSK
 						case iq_sign is
 							when "00" => -- ++
 								phase_in <= PI_1_4_POS;
@@ -223,36 +223,36 @@ begin
 								phase_in <= PI_3_4_NEG;
 							when others => null;
 						end case;
-					when "010" => -- OQPSK, needs sps * 2
-								  --	complex_flag <= not complex_flag;
-								  --	if complex_flag = '1' then 
-								  --		if signed(sym_q_rotate) >= 0 then
-								  --			phase_in <= PI_1_2_POS;
-								  --		else
-								  --			phase_in <= PI_1_2_NEG;
-								  --		end if;
-								  --	else
-								  --		if signed(sym_i_rotate) >= 0 then
-								  --			phase_in <= (others=>'0');
-								  --		else
-								  --			phase_in <= PI_POS;
-								  --		end if;
-								  --	end if;
-						if abs(signed(sym_i_rotate)) >= abs(signed(sym_q_rotate)) then
-							if signed(sym_i_rotate)>= 0 then
-								phase_in <= (others=>'0'); 
-							elsif signed(sym_q_rotate) >= 0 then
-								phase_in <= PI_POS;
-							elsif signed(sym_q_rotate) < 0 then
-								phase_in <= PI_NEG;
-							end if;
-						else
-							if signed(sym_q_rotate)>= 0 then
-								phase_in <= PI_1_2_POS;
-							else
-								phase_in <= PI_1_2_NEG;
-							end if;
-						end if;
+				--	when "010" => -- OQPSK, needs sps * 2
+				--				  --	complex_flag <= not complex_flag;
+				--				  --	if complex_flag = '1' then 
+				--				  --		if signed(sym_q_rotate) >= 0 then
+				--				  --			phase_in <= PI_1_2_POS;
+				--				  --		else
+				--				  --			phase_in <= PI_1_2_NEG;
+				--				  --		end if;
+				--				  --	else
+				--				  --		if signed(sym_i_rotate) >= 0 then
+				--				  --			phase_in <= (others=>'0');
+				--				  --		else
+				--				  --			phase_in <= PI_POS;
+				--				  --		end if;
+				--				  --	end if;
+				--		if abs(signed(sym_i_rotate)) >= abs(signed(sym_q_rotate)) then
+				--			if signed(sym_i_rotate)>= 0 then
+				--				phase_in <= (others=>'0'); 
+				--			elsif signed(sym_q_rotate) >= 0 then
+				--				phase_in <= PI_POS;
+				--			elsif signed(sym_q_rotate) < 0 then
+				--				phase_in <= PI_NEG;
+				--			end if;
+				--		else
+				--			if signed(sym_q_rotate)>= 0 then
+				--				phase_in <= PI_1_2_POS;
+				--			else
+				--				phase_in <= PI_1_2_NEG;
+				--			end if;
+				--		end if;
 					when "011" => -- 8PSK
 						for kk in 0 to 7 loop
 							err_i(kk) <= signed(sym_i_rotate(15 downto 0)) - PSK8_LUT_I(kk);

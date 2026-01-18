@@ -57,6 +57,7 @@ architecture arch of dem_top is
 			samp_vld			: in std_logic;
 			samp_i				: in std_logic_vector(8 downto 0);
 			samp_q				: in std_logic_vector(8 downto 0);
+			sym_type 	: in std_logic_vector(2 downto 0);
 			en_sym 				: out std_logic;
 			sym_i				: out std_logic_vector(24 downto 0);
 			sym_q				: out std_logic_vector(24 downto 0);
@@ -116,7 +117,7 @@ architecture arch of dem_top is
 	signal en_sym 		: std_logic;
 	signal sym_i		: std_logic_vector(24 downto 0):=(others=>'0');
 	signal sym_q		: std_logic_vector(24 downto 0):=(others=>'0');
-	signal sym_type		: std_logic_vector(2 downto 0):="010";
+	signal sym_type		: std_logic_vector(2 downto 0):="001";
 
 	signal pll_select   : std_logic_vector(1 downto 0):=(others=>'0'); 
 
@@ -256,8 +257,14 @@ begin
 				when st_idle	 =>
 					if aresetn_agc = '0' then
 						dem_sts <= st_idle;
-					elsif (ddc_vld = '1') and (sig_occurs >= SIG_OCCUR_NUM) then
-						dem_sts <= st_acq_tll;
+					elsif (ddc_vld = '1') then
+						if sig_det_win = SIG_DET_WIN_LEN then
+							if (sig_occurs < SIG_OCCUR_NUM) then
+								dem_sts <= st_idle;
+							else
+								dem_sts <= st_acq_tll;
+							end if;
+						end if;
 					end if;
 				when st_acq_tll  =>
 					if aresetn_agc = '0' then
@@ -301,27 +308,27 @@ begin
 					cnt_pll_locked <= (others=>'0'); 
 					pll_locked <= '0';
 					aresetn_pll <= '0';
-					if aresetn_agc = '0' then
-						aresetn_tll <= '0';
-					elsif (ddc_vld = '1') and (sig_occurs >= SIG_OCCUR_NUM) then
-						aresetn_tll <= '1';
-					else
-						aresetn_tll <= '0';
-					end if;
 					-- wait signal occurs and agc locked
 					if aresetn_agc = '0' then
 						sig_det_win <= (others=>'0'); 
 						sig_occurs <= (others=>'0'); 
+						aresetn_tll <= '0';
 					elsif ddc_vld = '1' then
 						error_exp <= signed(agc_error(30 downto 23)) - 127;
 						if sig_det_win = SIG_DET_WIN_LEN then
 							sig_det_win <= (others=>'0'); 
 							sig_occurs <= (others=>'0'); 
+							if (sig_occurs >= SIG_OCCUR_NUM) then
+								aresetn_tll <= '1';
+							else
+								aresetn_tll <= '0';
+							end if;
 						else
 							sig_det_win <= sig_det_win + 1;
 							if (signed(power_out) >= NOISE_POW) and (signed(error_exp) <= AGC_ERR_EXP) then
 								sig_occurs <= sig_occurs + 1;
 							end if;
+							aresetn_tll <= '0';
 						end if;
 					end if;
 				when st_acq_tll	 =>
@@ -497,6 +504,7 @@ begin
 	port map(
 			sys_clk			=> sys_clk			,
 			aresetn 		=> aresetn_tll  	,
+			sym_type		=> sym_type			,
 			samp_vld		=> agc_vld			,
 			samp_i			=> agc_i			,
 			samp_q			=> agc_q			,

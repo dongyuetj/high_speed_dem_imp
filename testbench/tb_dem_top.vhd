@@ -68,6 +68,10 @@ begin
 		aresetn <= '0';
 		wait for 2 * clock_period;
 		aresetn <= '1';
+		wait for 960000 * clock_period;
+		aresetn <= '0';
+		wait for 2 * clock_period;
+		aresetn <= '1';
 		wait;
 	end process resetn_gen;
 

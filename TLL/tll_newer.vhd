@@ -17,6 +17,7 @@ entity tll_newer is
 	port(
 			sys_clk		: in std_logic;
 			aresetn 	: in std_logic;
+			sym_type 	: in std_logic_vector(2 downto 0);
 			samp_vld	: in std_logic;
 			samp_i		: in std_logic_vector(8 downto 0);
 			samp_q		: in std_logic_vector(8 downto 0);
@@ -65,6 +66,7 @@ architecture arch of tll_newer is
 	signal samp_i_q		: std_logic_vector(24 downto 0):=(others=>'0');
 	signal samp_q_q		: std_logic_vector(24 downto 0):=(others=>'0');
 	signal samp_i_d		: std_logic_vector(24 downto 0):=(others=>'0');
+	signal samp_i_d0		: std_logic_vector(24 downto 0):=(others=>'0');
 	signal samp_q_d		: std_logic_vector(24 downto 0):=(others=>'0');
 	signal cnt			: signed(24 downto 0):=MINIMAL;
 	signal mu			: signed(24 downto 0):=(others=>'0'); 
@@ -133,6 +135,7 @@ begin
 				samp_q_q(15 downto 0) <= (others=>'0'); 
 				samp_i_d <= samp_i_q ;
 				samp_q_d <= samp_q_q ;
+				samp_i_d0 <= samp_i_d ;
 			end if;
 		end if;
 	end process; 
@@ -154,8 +157,13 @@ begin
 					one_minus_mu <= (ONE - mu) ;
 				end if;
 				if samp_vld_d(1) = '1' then
-					xI_0 <= one_minus_mu * signed(samp_i_d);
-					xI_1 <=	mu * signed(samp_i_q);
+					if sym_type = "010" then
+						xI_0 <= one_minus_mu * signed(samp_i_d0);
+						xI_1 <=	mu * signed(samp_i_d);
+					else
+						xI_0 <= one_minus_mu * signed(samp_i_d);
+						xI_1 <=	mu * signed(samp_i_q);
+					end if;
 					yI_0 <= one_minus_mu * signed(samp_q_d);
 					yI_1 <=	mu * signed(samp_q_q);
 				end if;
