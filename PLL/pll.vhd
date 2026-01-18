@@ -241,8 +241,10 @@ begin
 						if abs(signed(sym_i_rotate)) >= abs(signed(sym_q_rotate)) then
 							if signed(sym_i_rotate)>= 0 then
 								phase_in <= (others=>'0'); 
-							else
+							elsif signed(sym_q_rotate) >= 0 then
 								phase_in <= PI_POS;
+							elsif signed(sym_q_rotate) < 0 then
+								phase_in <= PI_NEG;
 							end if;
 						else
 							if signed(sym_q_rotate)>= 0 then

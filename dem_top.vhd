@@ -116,7 +116,7 @@ architecture arch of dem_top is
 	signal en_sym 		: std_logic;
 	signal sym_i		: std_logic_vector(24 downto 0):=(others=>'0');
 	signal sym_q		: std_logic_vector(24 downto 0):=(others=>'0');
-	signal sym_type		: std_logic_vector(2 downto 0):="001";
+	signal sym_type		: std_logic_vector(2 downto 0):="010";
 
 	signal pll_select   : std_logic_vector(1 downto 0):=(others=>'0'); 
 
@@ -169,7 +169,6 @@ architecture arch of dem_top is
 	signal PLL_DET_WIN_LEN 	: unsigned(9 downto 0):=to_unsigned(1023,10);
 	signal PLL_ERR_ABS		: signed(19 downto 0):=to_signed(200,20); --pi/128*2^13
 	signal PLL_LOCKED_NUM	: unsigned(9 downto 0):=to_unsigned(200,10);
-	signal signal_present		: std_logic:='0';
 	signal pll_locked    		: std_logic:='0';
 	signal tll_locked			: std_logic:='0';
 	signal agc_error 			: std_logic_vector(31 downto 0):=(others=>'0'); 
@@ -212,7 +211,6 @@ architecture arch of dem_top is
 	
 	attribute mark_debug : string;
 	attribute mark_debug of sym_sync_en,sym_sync_data_i,sym_sync_data_q : signal is "TRUE";
-	attribute mark_debug of signal_present		 : signal is "TRUE"; 
 	attribute mark_debug of pll_locked    		 : signal is "TRUE";
 	attribute mark_debug of tll_locked			 : signal is "TRUE";
 	attribute mark_debug of agc_error 			 : signal is "TRUE";
@@ -251,34 +249,6 @@ begin
 	PLL_ERR_ABS		<= signed(probe_out12);
 	PLL_LOCKED_NUM	<= unsigned(probe_out13); 
 
-	-- wait signal occurs and agc locked
-	process(sys_clk)
-	begin
-		if rising_edge(sys_clk) then
-			if aresetn_agc = '0' then
-				signal_present <= '0';
-				sig_det_win <= (others=>'0'); 
-				sig_occurs <= (others=>'0'); 
-			elsif ddc_vld	= '1' then
-				error_exp <= signed(agc_error(30 downto 23)) - 127;
-				if sig_det_win = SIG_DET_WIN_LEN then
-					sig_det_win <= (others=>'0'); 
-					sig_occurs <= (others=>'0'); 
-					if (sig_occurs >= SIG_OCCUR_NUM) then
-						signal_present <= '1';
-					else
-						signal_present <= '0';
-					end if;
-				else
-					sig_det_win <= sig_det_win + 1;
-					if (signed(power_out) >= NOISE_POW) and (signed(error_exp) <= AGC_ERR_EXP) then
-						sig_occurs <= sig_occurs + 1;
-					end if;
-				end if;
-			end if;
-		end if;
-	end process; 
-
 	process(sys_clk)
 	begin
 		if rising_edge(sys_clk) then
@@ -286,7 +256,7 @@ begin
 				when st_idle	 =>
 					if aresetn_agc = '0' then
 						dem_sts <= st_idle;
-					elsif (signal_present = '1') then
+					elsif (ddc_vld = '1') and (sig_occurs >= SIG_OCCUR_NUM) then
 						dem_sts <= st_acq_tll;
 					end if;
 				when st_acq_tll  =>
@@ -333,10 +303,26 @@ begin
 					aresetn_pll <= '0';
 					if aresetn_agc = '0' then
 						aresetn_tll <= '0';
-					elsif (signal_present = '1') then
+					elsif (ddc_vld = '1') and (sig_occurs >= SIG_OCCUR_NUM) then
 						aresetn_tll <= '1';
 					else
 						aresetn_tll <= '0';
+					end if;
+					-- wait signal occurs and agc locked
+					if aresetn_agc = '0' then
+						sig_det_win <= (others=>'0'); 
+						sig_occurs <= (others=>'0'); 
+					elsif ddc_vld = '1' then
+						error_exp <= signed(agc_error(30 downto 23)) - 127;
+						if sig_det_win = SIG_DET_WIN_LEN then
+							sig_det_win <= (others=>'0'); 
+							sig_occurs <= (others=>'0'); 
+						else
+							sig_det_win <= sig_det_win + 1;
+							if (signed(power_out) >= NOISE_POW) and (signed(error_exp) <= AGC_ERR_EXP) then
+								sig_occurs <= sig_occurs + 1;
+							end if;
+						end if;
 					end if;
 				when st_acq_tll	 =>
 					-- wait TLL locked
@@ -358,6 +344,10 @@ begin
 							end if;
 						end if;
 					end if;
+					if aresetn_agc = '0' then
+						sig_det_win <= (others=>'0'); 
+						sig_occurs <= (others=>'0'); 
+					end if;
 				when st_acq_pll  =>
 					-- wait PLL locked
 					if (phase_diff_vld = '1') then
@@ -376,7 +366,15 @@ begin
 							end if;
 						end if;
 					end if;
-				when others => null;
+					if aresetn_agc = '0' then
+						sig_det_win <= (others=>'0'); 
+						sig_occurs <= (others=>'0'); 
+					end if;
+				when others => 
+					if aresetn_agc = '0' then
+						sig_det_win <= (others=>'0'); 
+						sig_occurs <= (others=>'0'); 
+					end if;
 			end case;
 		end if;
 	end process;
