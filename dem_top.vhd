@@ -553,7 +553,7 @@ begin
 	port map(
 				 clk 		 => sys_clk				,
 				 probe_out0  => open				,
-	--			 probe_out0  => sym_type			,
+				 probe_out0  => sym_type			,
 				 probe_out1  => aresetn_handset		,
 				 probe_out2  => pll_select			,
 				 probe_out3  => log_ref				,
