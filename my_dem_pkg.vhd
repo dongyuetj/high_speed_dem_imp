@@ -59,9 +59,13 @@ package my_dem_pkg is
     type signed_array_16 is array (natural range<>) of signed(15 downto 0);
     type signed_array_26 is array (natural range<>) of signed(25 downto 0);
     type signed_array_19 is array (natural range<>) of signed(18 downto 0);
+    type signed_array_39 is array (natural range<>) of signed(38 downto 0);
+    type signed_array_25 is array (natural range<>) of signed(24 downto 0);
     type unsigned_array_16 is array (natural range<>) of unsigned(15 downto 0);
     type unsigned_array_17 is array (natural range<>) of unsigned(16 downto 0);
+    type unsigned_array_18 is array (natural range<>) of unsigned(17 downto 0);
     type signed_array_20 is array (natural range<>) of signed(19 downto 0);
+    type signed_array_18 is array (natural range<>) of signed(17 downto 0);
 
 	
 	constant PSK8_LUT_I						: signed_array_16(0 to 7):= (to_signed(2000,16),to_signed(1414,16),to_signed(-1414,16),to_signed(0,16),to_signed(1414,16),to_signed(0,16),to_signed(-2000,16),to_signed(-1414,16));
