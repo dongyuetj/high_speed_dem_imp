@@ -39,13 +39,14 @@ architecture sim of tb_tb_p_tll is
     signal rst_n   : std_logic := '0';
 
     -- DUT I/O
-	signal data_i  : std_logic_array_8(N-1 downto 0):=(others=>(others=>'0'));
-	signal data_q  : std_logic_array_8(N-1 downto 0):=(others=>(others=>'0'));
-	signal symb_en : std_logic_vector(N-1 downto 0):=(others=>'0');
-	signal symb_i  : std_logic_array_16(N-1 downto 0):=(others=>(others=>'0'));
-	signal symb_q  : std_logic_array_16(N-1 downto 0):=(others=>(others=>'0'));
-	signal cnt_div : unsigned(7 downto 0):=(others=>'0');
-	signal iq_vld  : std_logic:='0';
+	signal data_i  		: std_logic_array_8(N-1 downto 0):=(others=>(others=>'0'));
+	signal data_q  		: std_logic_array_8(N-1 downto 0):=(others=>(others=>'0'));
+	signal symb_en 		: std_logic_vector(N-1 downto 0):=(others=>'0');
+	signal symb_i  		: std_logic_array_16(N-1 downto 0):=(others=>(others=>'0'));
+	signal symb_q  		: std_logic_array_16(N-1 downto 0):=(others=>(others=>'0'));
+	signal cnt_div 		: unsigned(7 downto 0):=(others=>'0');
+	signal iq_vld  		: std_logic:='0';
+	signal iq_vld_d  	: std_logic:='0';
 
     -- File I/O
     file rec_r_i0 : text open read_mode  is "D:\projects\46_high_speed_dem\sim\rd_data_i0.txt";
@@ -64,8 +65,8 @@ architecture sim of tb_tb_p_tll is
     file rec_r_q6 : text open read_mode  is "D:\projects\46_high_speed_dem\sim\rd_data_q6.txt";
     file rec_r_i7 : text open read_mode  is "D:\projects\46_high_speed_dem\sim\rd_data_i7.txt";
     file rec_r_q7 : text open read_mode  is "D:\projects\46_high_speed_dem\sim\rd_data_q7.txt";
-  --  file rec_w_i : text open write_mode is "da_data_i.txt";
-  --  file rec_w_q : text open write_mode is "da_data_q.txt";
+	file rec_w_i : text open write_mode is "D:\projects\46_high_speed_dem\sim\da_data_i.txt";
+	file rec_w_q : text open write_mode is "D:\projects\46_high_speed_dem\sim\da_data_q.txt";
 
 begin
 
@@ -77,7 +78,7 @@ begin
     Port map(
         sys_clk =>	sys_clk,
         rst_n   =>	rst_n  ,
-		iq_vld 	=>	iq_vld ,
+		iq_vld 	=>	iq_vld_d ,
 		data_i 	=>	data_i ,
 		data_q 	=>	data_q ,
 		symb_en =>	symb_en,
@@ -88,6 +89,7 @@ begin
 	process(sys_clk)
 	begin
 		if rising_edge(sys_clk) then
+			iq_vld_d <= iq_vld; 
 			cnt_div <= cnt_div + 1;
 			if cnt_div = 32 then
 				iq_vld <= '1';
@@ -403,33 +405,37 @@ begin
 			end if;
 		end if;
 	end process;
---    ----------------------------------------------------------------
---    -- Write I Channel
---    ----------------------------------------------------------------
---    process(sys_clk)
---        variable buf : line;
---    begin
---        if rising_edge(sys_clk) then
---            if wave_valid = '1' then
---                write(buf, to_integer(signed(wave_i)));
---                writeline(rec_w_i, buf);
---            end if;
---        end if;
---    end process;
---
---    ----------------------------------------------------------------
---    -- Write Q Channel
---    ----------------------------------------------------------------
---    process(sys_clk)
---        variable buf : line;
---    begin
---        if rising_edge(sys_clk) then
---            if wave_valid = '1' then
---                write(buf, to_integer(signed(wave_q)));
---                writeline(rec_w_q, buf);
---            end if;
---        end if;
---    end process;
+    ----------------------------------------------------------------
+    -- Write I Channel
+    ----------------------------------------------------------------
+    process(sys_clk)
+        variable buf : line;
+    begin
+        if rising_edge(sys_clk) then
+			for ii in 0 to 7 loop
+				if symb_en(ii) = '1' then
+					write(buf, to_integer(signed(symb_i(ii))));
+					writeline(rec_w_i, buf);
+				end if;
+			end loop;
+        end if;
+    end process;
+
+    ----------------------------------------------------------------
+    -- Write Q Channel
+    ----------------------------------------------------------------
+    process(sys_clk)
+        variable buf : line;
+    begin
+        if rising_edge(sys_clk) then
+			for ii in 0 to 7 loop
+				if symb_en(ii) = '1' then
+					write(buf, to_integer(signed(symb_q(ii))));
+					writeline(rec_w_q, buf);
+				end if;
+			end loop;
+        end if;
+    end process;
 
 end sim;
 
