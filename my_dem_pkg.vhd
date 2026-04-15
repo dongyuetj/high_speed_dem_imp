@@ -26,8 +26,10 @@ package my_dem_pkg is
     type std_logic_array_22 is array (natural range<>) of std_logic_vector(21 downto 0);
     type std_logic_array_23 is array (natural range<>) of std_logic_vector(22 downto 0);
     type std_logic_array_24 is array (natural range<>) of std_logic_vector(23 downto 0);
+    type std_logic_array_25 is array (natural range<>) of std_logic_vector(24 downto 0);
     type std_logic_array_28 is array (natural range<>) of std_logic_vector(27 downto 0);
     type std_logic_array_32 is array (natural range<>) of std_logic_vector(31 downto 0);
+    type std_logic_array_36 is array (natural range<>) of std_logic_vector(35 downto 0);
     type std_logic_array_40 is array (natural range<>) of std_logic_vector(39 downto 0);
     type std_logic_array_47 is array (natural range<>) of std_logic_vector(46 downto 0);
     type std_logic_array_44 is array (natural range<>) of std_logic_vector(43 downto 0);
@@ -65,8 +67,10 @@ package my_dem_pkg is
     type signed_array_20 is array (natural range<>) of signed(19 downto 0);
     type signed_array_25 is array (natural range<>) of signed(24 downto 0);
     type signed_array_26 is array (natural range<>) of signed(25 downto 0);
+    type signed_array_27 is array (natural range<>) of signed(26 downto 0);
     type signed_array_32 is array (natural range<>) of signed(31 downto 0);
     type signed_array_33 is array (natural range<>) of signed(32 downto 0);
+    type signed_array_36 is array (natural range<>) of signed(35 downto 0);
     type signed_array_39 is array (natural range<>) of signed(38 downto 0);
 
     type unsigned_array_16 is array (natural range<>) of unsigned(15 downto 0);

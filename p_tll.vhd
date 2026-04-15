@@ -11,7 +11,7 @@ library work;
 use work.my_dem_pkg.all;
 
 entity p_tll is
-	generic(N:integer:=4);
+	generic(N:integer:=8);
     Port (
         sys_clk : in  std_logic;
         rst_n   : in  std_logic;
