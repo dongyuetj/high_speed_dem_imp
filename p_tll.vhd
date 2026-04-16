@@ -16,11 +16,11 @@ entity p_tll is
         sys_clk : in  std_logic;
         rst_n   : in  std_logic;
 		iq_vld : in std_logic;
-		data_i : in std_logic_array_8(N-1 downto 0);
-		data_q : in std_logic_array_8(N-1 downto 0);
-		symb_en : out std_logic_vector(N-1 downto 0):=(others=>'0');
-		symb_i : out std_logic_array_16(N-1 downto 0):=(others=>(others=>'0'));
-		symb_q : out std_logic_array_16(N-1 downto 0):=(others=>(others=>'0'))
+		data_i : in std_logic_array_8(0 to N-1);
+		data_q : in std_logic_array_8(0 to N-1);
+		symb_en : out std_logic_vector(0 to N-1):=(others=>'0');
+		symb_i : out std_logic_array_16(0 to N-1):=(others=>(others=>'0'));
+		symb_q : out std_logic_array_16(0 to N-1):=(others=>(others=>'0'))
     );
 end p_tll;
 

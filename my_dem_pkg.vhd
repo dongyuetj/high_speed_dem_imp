@@ -29,6 +29,8 @@ package my_dem_pkg is
     type std_logic_array_25 is array (natural range<>) of std_logic_vector(24 downto 0);
     type std_logic_array_28 is array (natural range<>) of std_logic_vector(27 downto 0);
     type std_logic_array_32 is array (natural range<>) of std_logic_vector(31 downto 0);
+    type std_logic_array_33 is array (natural range<>) of std_logic_vector(32 downto 0);
+    type std_logic_array_34 is array (natural range<>) of std_logic_vector(33 downto 0);
     type std_logic_array_36 is array (natural range<>) of std_logic_vector(35 downto 0);
     type std_logic_array_40 is array (natural range<>) of std_logic_vector(39 downto 0);
     type std_logic_array_47 is array (natural range<>) of std_logic_vector(46 downto 0);

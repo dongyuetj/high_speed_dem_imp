@@ -10,18 +10,17 @@ use IEEE.NUMERIC_STD.ALL;
 library work;
 use work.my_dem_pkg.all;
 
-
 entity p_pll is
 	generic(N:integer:=8);
     Port (
         sys_clk 	 : in  std_logic;
         rst_n   	 : in  std_logic;
 		symb_en 	 : in std_logic;
-		symb_i  	 : in std_logic_array_8(N-1 downto 0):=(others=>(others=>'0'));
-		symb_q  	 : in std_logic_array_8(N-1 downto 0):=(others=>(others=>'0'));
-		sync_symb_en : out std_logic_vector(N-1 downto 0):=(others=>'0');
-		sync_symb_i  : out std_logic_array_16(N-1 downto 0):=(others=>(others=>'0'));
-		sync_symb_q  : out std_logic_array_16(N-1 downto 0):=(others=>(others=>'0'))
+		symb_i  	 : in std_logic_array_8(0 to N-1):=(others=>(others=>'0'));
+		symb_q  	 : in std_logic_array_8(0 to N-1):=(others=>(others=>'0'));
+		sync_symb_en : out std_logic:='0';
+		sync_symb_i  : out std_logic_array_16(0 to N-1):=(others=>(others=>'0'));
+		sync_symb_q  : out std_logic_array_16(0 to N-1):=(others=>(others=>'0'))
     );
 end p_pll;
 
@@ -172,8 +171,8 @@ begin
 			else
 				pll_vld_d <= pll_vld_d(pll_vld_d'high-1 downto 0)& m_axis_dout_tvalid(0);
 			end if;
+			sync_symb_en <= m_axis_dout_tvalid(0);
 			for ii in 0 to N-1 loop
-				sync_symb_en(ii) <= m_axis_dout_tvalid(ii);
 				sync_symb_i(ii) <= phase_detection_real(ii)(24 downto 9) ;
 				sync_symb_q(ii) <= phase_detection_imag(ii)(24 downto 9) ;
 				if m_axis_dout_tvalid(ii) = '1' then

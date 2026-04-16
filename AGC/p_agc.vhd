@@ -22,9 +22,9 @@ entity p_agc is
 			wave_in_valid 		: in std_logic;
 			wave_in_i 			: in std_logic_array_16(0 to N-1);
 			wave_in_q			: in std_logic_array_16(0 to N-1);
-			wave_out_valid 		: out std_logic;
-			wave_out_i 			: out std_logic_array_16(0 to N-1);
-			wave_out_q 			: out std_logic_array_16(0 to N-1);
+			wave_out_valid 		: out std_logic:='0';
+			wave_out_i 			: out std_logic_array_16(0 to N-1):=(others=>(others=>'0'));
+			wave_out_q 			: out std_logic_array_16(0 to N-1):=(others=>(others=>'0'));
 			power_out_o 		: out std_logic_vector(31 downto 0):=(others=>'0');
 			exp_gain_o 			: out std_logic_vector(31 downto 0):=(others=>'0');
 			agc_error 			: out std_logic_vector(31 downto 0):=(others=>'0')
@@ -32,6 +32,23 @@ entity p_agc is
 end p_agc;
 
 architecture arch of p_agc is
+
+	component p_power_detect
+	generic(
+			   moving_window_len : integer:=16;
+			   N : integer := 8);
+	port(
+
+			sys_clk				: in std_logic; -- 28.8MHz
+			aresetn 			: in std_logic;
+			start_level  		: in std_logic_vector(31 downto 0);
+			wave_in_valid 		: in std_logic;
+			wave_in_i 			: in std_logic_array_16(0 to N-1);
+			wave_in_q			: in std_logic_array_16(0 to N-1);
+			power_valid	    	: out std_logic;
+			power_out			: out std_logic_vector(31 downto 0)
+		);
+	end component;
 
 	component fix2float
 		port (
@@ -157,22 +174,17 @@ architecture arch of p_agc is
 	constant MAX_EXP_GAIN		: std_logic_vector(31 downto 0):=x"43960000";  -- 300
 	
 
---	constant agcDelayNum		: integer:=256;
-	signal wave_i_enlarge_width : std_logic_vector(31 downto 0):=(others=>'0');
-	signal wave_q_enlarge_width : std_logic_vector(31 downto 0):=(others=>'0');
---	signal wave_dly_i			: std_logic_array_16(agcDelayNum-1 downto 0):=(others=>(others=>'0'));
---	signal wave_dly_q			: std_logic_array_16(agcDelayNum-1 downto 0):=(others=>(others=>'0'));
---	signal wave_dly_i			: std_logic_vector(15 downto 0):=(others=>'0');
---	signal wave_dly_q			: std_logic_vector(15 downto 0):=(others=>'0');
+	signal wave_i_enlarge_width : std_logic_array_32(0 to N-1):=(others=>(others=>'0'));
+	signal wave_q_enlarge_width : std_logic_array_32(0 to N-1):=(others=>(others=>'0'));
 	signal gain_valid			: std_logic:='0';
 	signal gain					: std_logic_vector(31 downto 0):=ONE;
 	signal gain_reg				: std_logic_vector(31 downto 0):=ONE;
-	signal wave_float_valid		: std_logic:='0';
-	signal wave_i_float			: std_logic_vector(31 downto 0):=(others=>'0');
-	signal wave_q_float			: std_logic_vector(31 downto 0):=(others=>'0');
-	signal wave_g_valid			: std_logic:='0';
-	signal wave_i_g_data		: std_logic_vector(31 downto 0):=(others=>'0');
-	signal wave_q_g_data		: std_logic_vector(31 downto 0):=(others=>'0');
+	signal wave_float_valid		: std_logic_vector(0 to N-1):=(others=>'0');
+	signal wave_i_float			: std_logic_array_32(0 to N-1):=(others=>(others=>'0'));
+	signal wave_q_float			: std_logic_array_32(0 to N-1):=(others=>(others=>'0'));
+	signal wave_g_valid			: std_logic_vector(0 to N-1):=(others=>'0');
+	signal wave_i_g_data		: std_logic_array_32(0 to N-1):=(others=>(others=>'0'));
+	signal wave_q_g_data		: std_logic_array_32(0 to N-1):=(others=>(others=>'0'));
 	signal z_valid				: std_logic:='0';
 	signal z_data				: std_logic_vector(31 downto 0):=(others=>'0');
 	signal z_valid_t			: std_logic:='0';
@@ -181,9 +193,9 @@ architecture arch of p_agc is
 	signal e_data				: std_logic_vector(31 downto 0):=(others=>'0');
 	signal e_t_valid			: std_logic:='0';
 	signal e_t_data				: std_logic_vector(31 downto 0):=(others=>'0');
-	signal wave_fix_valid		: std_logic:='0';
-	signal wave_i_fix_data  	: std_logic_vector(31 downto 0):=(others=>'0');
-	signal wave_q_fix_data  	: std_logic_vector(31 downto 0):=(others=>'0');
+	signal wave_fix_valid		: std_logic_vector(0 to N-1):=(others=>'0');
+	signal wave_i_fix_data  	: std_logic_array_32(0 to N-1):=(others=>(others=>'0'));
+	signal wave_q_fix_data  	: std_logic_array_32(0 to N-1):=(others=>(others=>'0'));
 	signal power_valid	    	: std_logic:='0';
 	signal power_out			: std_logic_vector(31 downto 0):=(others=>'0');
 	signal z_log_valid			: std_logic:='0';
@@ -201,28 +213,27 @@ architecture arch of p_agc is
 	signal wave_pow2_valid		: std_logic:='0';
 	signal wave_pow2_i			: std_logic_vector(31 downto 0):=(others=>'0');
 	signal wave_pow2_q			: std_logic_vector(31 downto 0):=(others=>'0');
-	signal wave_out_i_t			: std_logic_vector(15 downto 0):=(others=>'0');
-	signal wave_out_q_t			: std_logic_vector(15 downto 0):=(others=>'0');
-	signal wave_in				: std_logic_vector(31 downto 0):=(others=>'0');
-	signal wave_dly				: std_logic_vector(31 downto 0):=(others=>'0');
+	signal wave_out_i_t			: std_logic_array_16(0 to N-1):=(others=>(others=>'0'));
+	signal wave_out_q_t			: std_logic_array_16(0 to N-1):=(others=>(others=>'0'));
+	signal wave_in				: std_logic_array_32(0 to N-1):=(others=>(others=>'0'));
+	signal wave_dly				: std_logic_array_32(0 to N-1):=(others=>(others=>'0'));
 	signal greater_equal_flag	: std_logic:='0';
 	signal greater_equal_res	: std_logic_vector(7 downto 0):=(others=>'0'); 
-	attribute mark_debug : string;
-	attribute mark_debug of power_valid,  power_out,wave_i_fix_data,wave_q_fix_data,wave_dly	: signal is "TRUE";
 begin
+
 	agc_error <= e_data;
 	power_out_o <= power_out;
 	exp_gain_o <= exp_gain_cmp;
 
-	u_pwr_det: power_detect
-	generic map(moving_window_len => 31)
+	u_pwr_det: p_power_detect
+	generic map(moving_window_len => 4, N => 8)
 	port map(
 				sys_clk			=> 	sys_clk			,
-				aresetn 		=> aresetn			,
-				start_level  	=>  (others=>'0') 		,
+				aresetn 		=>  aresetn			,
+				start_level  	=>  (others=>'0') 	,
 				wave_in_valid 	=> 	wave_in_valid 	,
-				wave_in_i 		=> 	wave_in_i 		,
-				wave_in_q		=> 	wave_in_q		,
+				wave_in_i 		=>	wave_in_i		,
+				wave_in_q		=>	wave_in_q		,
 				power_valid	    =>  power_valid		,
 				power_out		=>  power_out
 			);
@@ -356,7 +367,6 @@ begin
 				m_axis_result_tdata 	=> exp_gain
 			);
 
-
 	u_cmp: floating_point_cmp
 	port map(
 				aclk 				 => sys_clk,
@@ -384,139 +394,107 @@ begin
 		end if;
 	end process; 
 
-	-- the data and the gain must be aligned
-	wave_in <= wave_in_q & wave_in_i;
+	gen: for ii in 0 to N-1 generate
+		wave_in(ii) <= wave_in_q(ii) & wave_in_i(ii);
 
-	u_shift_ram: agc_shift_ram
-	port map(
-				D 		=> wave_in,
-				CLK 	=> sys_clk,
-				CE 		=> wave_in_valid,
-				Q 		=> wave_dly
-			);
+		u_shift_ram: agc_shift_ram
+		port map(
+					D 		=> wave_in(ii),
+					CLK 	=> sys_clk,
+					CE 		=> wave_in_valid,
+					Q 		=> wave_dly(ii)
+				);
 
-	wave_i_enlarge_width(15 downto 0)  <= wave_dly(15 downto 0);
-	wave_i_enlarge_width(31 downto 16) <= (others=>wave_dly(15));
-	wave_q_enlarge_width(15 downto 0)  <= wave_dly(31 downto 16);
-	wave_q_enlarge_width(31 downto 16) <= (others=>wave_dly(31));
+		wave_i_enlarge_width(ii)(15 downto 0)  <= wave_dly(ii)(15 downto 0);
+		wave_i_enlarge_width(ii)(31 downto 16) <= (others=>wave_dly(ii)(15));
+		wave_q_enlarge_width(ii)(15 downto 0)  <= wave_dly(ii)(31 downto 16);
+		wave_q_enlarge_width(ii)(31 downto 16) <= (others=>wave_dly(ii)(31));
 
-	u_fix2float_i: fix2float
-	port map(
-				aclk 					=> sys_clk,
-				aresetn 				=> aresetn,
-				s_axis_a_tvalid 		=> wave_in_valid,
-				s_axis_a_tready 		=> open,
-				s_axis_a_tdata 			=> wave_i_enlarge_width,
-				m_axis_result_tvalid 	=> wave_float_valid,
-				m_axis_result_tdata 	=> wave_i_float
-			);
+		u_fix2float_i: fix2float
+		port map(
+					aclk 					=> sys_clk,
+					aresetn 				=> aresetn,
+					s_axis_a_tvalid 		=> wave_in_valid,
+					s_axis_a_tready 		=> open,
+					s_axis_a_tdata 			=> wave_i_enlarge_width(ii),
+					m_axis_result_tvalid 	=> wave_float_valid(ii),
+					m_axis_result_tdata 	=> wave_i_float(ii)
+				);
 
-	u_fix2float_q: fix2float
-	port map(
-				aclk 					=> sys_clk,
-				aresetn 				=> aresetn,
-				s_axis_a_tvalid 		=> wave_in_valid,
-				s_axis_a_tready 		=> open,
-				s_axis_a_tdata 			=> wave_q_enlarge_width,
-				m_axis_result_tvalid 	=> open,
-				m_axis_result_tdata 	=> wave_q_float
-			);
+		u_fix2float_q: fix2float
+		port map(
+					aclk 					=> sys_clk,
+					aresetn 				=> aresetn,
+					s_axis_a_tvalid 		=> wave_in_valid,
+					s_axis_a_tready 		=> open,
+					s_axis_a_tdata 			=> wave_q_enlarge_width(ii),
+					m_axis_result_tvalid 	=> open,
+					m_axis_result_tdata 	=> wave_q_float(ii)
+				);
 
-	u_mult_gain_i: floating_point_mult
-	port map(
-				aclk 				   => sys_clk,
-				aresetn 			   => aresetn,
-				s_axis_a_tvalid        => wave_float_valid,
-				s_axis_a_tready        => open,
-				s_axis_a_tdata         => wave_i_float,
-				s_axis_b_tvalid        => wave_float_valid,
-				s_axis_b_tready        => open,
-				s_axis_b_tdata         => exp_gain_cmp,
-				m_axis_result_tvalid   => wave_g_valid,
-				m_axis_result_tdata    => wave_i_g_data
-			);
+		u_mult_gain_i: floating_point_mult
+		port map(
+					aclk 				   => sys_clk,
+					aresetn 			   => aresetn,
+					s_axis_a_tvalid        => wave_float_valid(ii),
+					s_axis_a_tready        => open,
+					s_axis_a_tdata         => wave_i_float(ii),
+					s_axis_b_tvalid        => wave_float_valid(ii),
+					s_axis_b_tready        => open,
+					s_axis_b_tdata         => exp_gain_cmp,
+					m_axis_result_tvalid   => wave_g_valid(ii),
+					m_axis_result_tdata    => wave_i_g_data(ii)
+				);
 
-	u_mult_gain_q: floating_point_mult
-	port map(
-				aclk 				   => sys_clk,
-				aresetn 			   => aresetn,
-				s_axis_a_tvalid        => wave_float_valid,
-				s_axis_a_tready        => open,
-				s_axis_a_tdata         => wave_q_float,
-				s_axis_b_tvalid        => wave_float_valid,
-				s_axis_b_tready        => open,
-				s_axis_b_tdata         => exp_gain_cmp,
-				m_axis_result_tvalid   => open,
-				m_axis_result_tdata    => wave_q_g_data
-			);
+		u_mult_gain_q: floating_point_mult
+		port map(
+					aclk 				   => sys_clk,
+					aresetn 			   => aresetn,
+					s_axis_a_tvalid        => wave_float_valid(ii),
+					s_axis_a_tready        => open,
+					s_axis_a_tdata         => wave_q_float(ii),
+					s_axis_b_tvalid        => wave_float_valid(ii),
+					s_axis_b_tready        => open,
+					s_axis_b_tdata         => exp_gain_cmp,
+					m_axis_result_tvalid   => open,
+					m_axis_result_tdata    => wave_q_g_data(ii)
+				);
 
-	u_float2fix_i: float2fix
-	port map(
-				aclk 					=> sys_clk,
-				aresetn 				=> aresetn,
-				s_axis_a_tvalid 		=> wave_g_valid,
-				s_axis_a_tready 		=> open,
-				s_axis_a_tdata 			=> wave_i_g_data,
-				m_axis_result_tvalid	=> wave_fix_valid,
-				m_axis_result_tdata 	=> wave_i_fix_data
-			);
+		u_float2fix_i: float2fix
+		port map(
+					aclk 					=> sys_clk,
+					aresetn 				=> aresetn,
+					s_axis_a_tvalid 		=> wave_g_valid(ii),
+					s_axis_a_tready 		=> open,
+					s_axis_a_tdata 			=> wave_i_g_data(ii),
+					m_axis_result_tvalid	=> wave_fix_valid(ii),
+					m_axis_result_tdata 	=> wave_i_fix_data(ii)
+				);
 
+		u_float2fix_q: float2fix
+		port map(
+					aclk 					=> sys_clk,
+					aresetn 				=> aresetn,
+					s_axis_a_tvalid 		=> wave_g_valid(ii),
+					s_axis_a_tready 		=> open,
+					s_axis_a_tdata 			=> wave_q_g_data(ii),
+					m_axis_result_tvalid	=> open,
+					m_axis_result_tdata 	=> wave_q_fix_data(ii)
+				);
 
-	u_float2fix_q: float2fix
-	port map(
-				aclk 					=> sys_clk,
-				aresetn 				=> aresetn,
-				s_axis_a_tvalid 		=> wave_g_valid,
-				s_axis_a_tready 		=> open,
-				s_axis_a_tdata 			=> wave_q_g_data,
-				m_axis_result_tvalid	=> open,
-				m_axis_result_tdata 	=> wave_q_fix_data
-			);
+	end generate gen;
 
 	process(sys_clk)
 	begin
 		if rising_edge(sys_clk) then
-
-			if wave_fix_valid = '1' then
-				wave_out_i_t	<=	wave_i_fix_data(15 downto 0);
-			--	if wave_i_fix_data(wave_i_fix_data'high) = '0' then
-			--		if wave_i_fix_data(31 downto 15) = '0'&x"0000" then
-			--			wave_out_i_t	<=	wave_i_fix_data(15 downto 0);
-			--		else
-			--			wave_out_i_t	<=	x"7FFF";
-			--		end if;
-			--	else
-			--		if wave_i_fix_data(31 downto 15) = '1'&x"FFFF" then
-			--			wave_out_i_t	<=	wave_i_fix_data(15 downto 0);
-			--		else
-			--			wave_out_i_t	<=	x"8001";
-			--		end if;
-			--	end if;
-			end if;
-
-			if wave_fix_valid = '1' then
-				wave_out_q_t	<=	wave_q_fix_data(15 downto 0);
-			--	if wave_q_fix_data(wave_q_fix_data'high) = '0' then
-			--		if wave_q_fix_data(31 downto 15) = '0'&x"0000" then
-			--			wave_out_q_t	<=	wave_q_fix_data(15 downto 0);
-			--		else
-			--			wave_out_q_t	<=	x"7FFF";
-			--		end if;
-			--	else
-			--		if wave_q_fix_data(31 downto 15) = '1'&x"FFFF" then
-			--			wave_out_q_t	<=	wave_q_fix_data(15 downto 0);
-			--		else
-			--			wave_out_q_t	<=	x"8001";
-			--		end if;
-			--	end if;
-			end if;
-
-		--	if wave_fix_valid = '1' then -- mind here
-		--		wave_out_valid <= '1';
-		--	else
-		--		wave_out_valid <= '0';
-		--	end if;
-
+			for ii in 0 to N-1 loop
+				if wave_fix_valid(ii) = '1' then
+					wave_out_i_t(ii)	<=	wave_i_fix_data(ii)(15 downto 0);
+				end if;
+				if wave_fix_valid(ii) = '1' then
+					wave_out_q_t(ii)	<=	wave_q_fix_data(ii)(15 downto 0);
+				end if;
+			end loop;
 		end if;
 	end process;
 
@@ -524,13 +502,15 @@ begin
 	begin
 		if rising_edge(sys_clk) then
 			wave_out_valid <= wave_in_valid;
-			if aresetn = '0' then
-				wave_out_i	<=	(others=>'0');
-				wave_out_q  <=	(others=>'0');
-			else
-				wave_out_i	<=	wave_out_i_t; 
-				wave_out_q  <=	wave_out_q_t;
-			end if;
+			for ii in 0 to N-1 loop
+				if aresetn = '0' then
+					wave_out_i(ii)	<=	(others=>'0');
+					wave_out_q(ii)  <=	(others=>'0');
+				else
+					wave_out_i(ii)	<=	wave_out_i_t(ii); 
+					wave_out_q(ii)  <=	wave_out_q_t(ii);
+				end if;
+			end loop;
 		end if;
 	end process;
 
