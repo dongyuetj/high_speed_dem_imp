@@ -173,8 +173,20 @@ begin
 			end if;
 			sync_symb_en <= m_axis_dout_tvalid(0);
 			for ii in 0 to N-1 loop
-				sync_symb_i(ii) <= phase_detection_real(ii)(24 downto 17) ;
-				sync_symb_q(ii) <= phase_detection_imag(ii)(24 downto 17) ;
+				if phase_detection_real(ii)(24 downto 22) = "000" or phase_detection_real(ii)(24 downto 22) = "111" then
+					sync_symb_i(ii) <= phase_detection_real(ii)(22 downto 15) ;
+				elsif phase_detection_real(ii)(24)='1' then
+					sync_symb_i(ii) <= x"80";
+				elsif phase_detection_real(ii)(24)='0' then
+					sync_symb_i(ii) <= x"7F";
+				end if;
+				if phase_detection_imag(ii)(24 downto 22) = "000" or phase_detection_imag(ii)(24 downto 22) = "111" then
+					sync_symb_q(ii) <= phase_detection_imag(ii)(22 downto 15) ;
+				elsif phase_detection_imag(ii)(24)='1' then
+					sync_symb_q(ii) <= x"80";
+				elsif phase_detection_imag(ii)(24)='0' then
+					sync_symb_q(ii) <= x"7F";
+				end if;
 				if m_axis_dout_tvalid(ii) = '1' then
 					case iq_sign(ii) is
 						when "00" => --  pi/4

@@ -16,6 +16,7 @@ entity hs_dem is
 	generic( N : integer := 8);
     Port (
         sys_clk  : in  std_logic;
+        ddc_clk  : in  std_logic;
         rst_n    : in  std_logic;
 		data_vld : in std_logic;
 		data0_i  : in std_logic_vector(15 downto 0);
@@ -31,8 +32,9 @@ architecture rtl of hs_dem is
 
 	component fifo_s2p
 		port (
-				 clk : in std_logic;
-				 srst : in std_logic;
+				 wr_clk : in std_logic;
+				 rd_clk : in std_logic;
+				 rst : in std_logic;
 				 din : in std_logic_vector(15 downto 0);
 				 wr_en : in std_logic;
 				 rd_en : in std_logic;
@@ -86,6 +88,7 @@ architecture rtl of hs_dem is
 				 dout : out std_logic_vector(63 downto 0);
 				 full : out std_logic;
 				 empty : out std_logic;
+				 rd_data_count : out std_logic_vector(7 downto 0);
 				 wr_rst_busy : out std_logic;
 				 rd_rst_busy : out std_logic 
 			 );
@@ -175,6 +178,7 @@ architecture rtl of hs_dem is
 	signal empty_i, empty_q		: std_logic:='1';
 	signal wr_rst_busy_i,wr_rst_busy_q  : std_logic:='0';
 	signal rd_rst_busy_i,rd_rst_busy_q  : std_logic:='0';
+	signal rd_data_i_count, rd_data_q_count : std_logic_vector(7 downto 0):=(others=>'0');
 	signal rd_fifo_sts 					: std_logic:='0';
 	signal symb_align_sts 				: std_logic:='0';
 	signal rst_n_tll,rst_n_pll			: std_logic:='1';
@@ -189,6 +193,8 @@ architecture rtl of hs_dem is
 	signal p2s_sts									: std_logic:='0';
 	file rec_w_i : text open write_mode is "D:\projects\46_high_speed_dem\sim\hs_symb_i.txt";
 	file rec_w_q : text open write_mode is "D:\projects\46_high_speed_dem\sim\hs_symb_q.txt";
+	file rec_w_ii : text open write_mode is "D:\projects\46_high_speed_dem\sim\hs_sync_symb_i.txt";
+	file rec_w_qq : text open write_mode is "D:\projects\46_high_speed_dem\sim\hs_sync_symb_q.txt";
 begin
 
     process(sys_clk)
@@ -218,9 +224,9 @@ begin
         end if;
     end process;
 
-	process(sys_clk)
+	process(ddc_clk)
 	begin
-		if rising_edge(sys_clk) then
+		if rising_edge(ddc_clk) then
 			if (srst = '1' or  wr_rst_busy0 = '1' or wr_rst_busy1 = '1') then
 				wr_en0 <= '0';
 				wr_en1 <= '0';
@@ -237,8 +243,9 @@ begin
 
 	u_fifo_i: fifo_s2p
 	port map(
-				clk 	=> sys_clk,
-				srst 	=> srst	  ,
+				wr_clk 	=> ddc_clk,
+				rd_clk 	=> sys_clk,
+				rst 	=> srst	  ,
 				din 	=> din0   ,
 				wr_en 	=> wr_en0 ,
 				rd_en 	=> rd_en ,
@@ -251,8 +258,9 @@ begin
 
 	u_fifo_q: fifo_s2p
 	port map(
-				clk 	=> sys_clk,
-				srst 	=> srst	  ,
+				wr_clk 	=> ddc_clk,
+				rd_clk 	=> sys_clk,
+				rst 	=> srst	  ,
 				din 	=> din1   ,
 				wr_en 	=> wr_en1 ,
 				rd_en 	=> rd_en ,
@@ -363,12 +371,10 @@ begin
         variable buf : line;
     begin
         if rising_edge(sys_clk) then
-			for ii in 0 to 7 loop
-				if symb_en(ii) = '1' then
-					write(buf, to_integer(signed(symb_i(ii))));
-					writeline(rec_w_i, buf);
-				end if;
-			end loop;
+			if symb_wren = '1' then
+				write(buf, to_integer(signed(symb_i_t)));
+				writeline(rec_w_i, buf);
+			end if;
         end if;
     end process;
 
@@ -379,45 +385,34 @@ begin
         variable buf : line;
     begin
         if rising_edge(sys_clk) then
-			for ii in 0 to 7 loop
-				if symb_en(ii) = '1' then
-					write(buf, to_integer(signed(symb_q(ii))));
-					writeline(rec_w_q, buf);
-				end if;
-			end loop;
+			if symb_wren = '1' then
+				write(buf, to_integer(signed(symb_q_t)));
+				writeline(rec_w_q, buf);
+			end if;
         end if;
     end process;
 
 	process(sys_clk)
 	begin
 		if rising_edge(sys_clk) then
-			symb_en_d(0) <= symb_en(0);
-			symb_i_d(0) <= symb_i(0);
-			symb_q_d(0) <= symb_q(0);
-			for ii in 1 to N-1 loop
-				symb_en_d(ii)<= symb_en_d(ii-1);
-				symb_i_d(ii) <= symb_i_d(ii-1) ;
-				symb_q_d(ii) <= symb_q_d(ii-1) ;
-			end loop;
+			symb_wren <= '0';	
 			for ii in 0 to N-1 loop
-				if symb_en_d(ii) = '1' then
+				if symb_en(ii) = '1' then
 					symb_wren <= '1';	
-					if symb_i_d(ii)(15 downto 13) = "000" or symb_i_d(ii)(15 downto 13) = "111" then 
-						symb_i_t <=  symb_i_d(ii)(13 downto 6);
+					if symb_i(ii)(15 downto 13) = "000" or symb_i(ii)(15 downto 13) = "111" then 
+						symb_i_t <=  symb_i(ii)(13 downto 6);
 					elsif symb_i(ii)(15) = '0' then
 						symb_i_t <=  x"7F";
 					elsif symb_i(ii)(15) = '1' then
 						symb_i_t <=  x"80";
 					end if;
-					if symb_q_d(ii)(15 downto 13) = "000" or symb_q_d(ii)(15 downto 13) = "111" then 
-						symb_q_t <=  symb_q_d(ii)(13 downto 6);
+					if symb_q(ii)(15 downto 13) = "000" or symb_q(ii)(15 downto 13) = "111" then 
+						symb_q_t <=  symb_q(ii)(13 downto 6);
 					elsif symb_q(ii)(15) = '0' then
 						symb_q_t <=  x"7F";
 					elsif symb_q(ii)(15) = '1' then
 						symb_q_t <=  x"80";
 					end if;
-				else
-					symb_wren <= '0';	
 				end if;
 			end loop;
 		end if;
@@ -433,6 +428,7 @@ begin
 				dout 		=> symb_i_dout	,
 				full 		=> full_i 	  	, 
 				empty 		=> empty_i	  	, 
+				rd_data_count => rd_data_i_count,
 				wr_rst_busy => wr_rst_busy_i,
 				rd_rst_busy => rd_rst_busy_i
 			);
@@ -447,6 +443,7 @@ begin
 				dout 		=> symb_q_dout	,
 				full 		=> full_q 	  	, 
 				empty 		=> empty_q	  	, 
+				rd_data_count => rd_data_q_count,
 				wr_rst_busy => wr_rst_busy_q,
 				rd_rst_busy => rd_rst_busy_q
 			);
@@ -462,7 +459,7 @@ begin
 				rden_d <= rden;
 				case symb_align_sts is 
 					when '0' =>
-						if (empty_i = '0') and (empty_q = '0') then 
+						if empty_i = '0' and empty_q = '0' then 
 							symb_align_sts <= '1';
 							rden <= '1';
 						end if;
@@ -512,6 +509,38 @@ begin
 			end loop;
 		end if;
 	end process;
+
+    ----------------------------------------------------------------
+    -- Write I Channel
+    ----------------------------------------------------------------
+    process(sys_clk)
+        variable buf : line;
+    begin
+        if rising_edge(sys_clk) then
+			for ii in 0 to 7 loop
+				if sync_symb_en = '1' then
+					write(buf, to_integer(signed(sync_symb_i(ii))));
+					writeline(rec_w_ii, buf);
+				end if;
+			end loop;
+        end if;
+    end process;
+
+    ----------------------------------------------------------------
+    -- Write Q Channel
+    ----------------------------------------------------------------
+    process(sys_clk)
+        variable buf : line;
+    begin
+        if rising_edge(sys_clk) then
+			for ii in 0 to 7 loop
+				if sync_symb_en = '1' then
+					write(buf, to_integer(signed(sync_symb_q(ii))));
+					writeline(rec_w_qq, buf);
+				end if;
+			end loop;
+        end if;
+    end process;
 	
 	u_fifo_i_p2s: fifo_p2s
 	port map(

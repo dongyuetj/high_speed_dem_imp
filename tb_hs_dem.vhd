@@ -18,6 +18,7 @@ architecture sim of tb_tb_hs_dem is
 	component hs_dem
 	generic( N : integer := 8);
     Port (
+        ddc_clk  : in  std_logic;
         sys_clk  : in  std_logic;
         rst_n    : in  std_logic;
 		data_vld : in std_logic;
@@ -32,6 +33,7 @@ architecture sim of tb_tb_hs_dem is
 
     constant CLK_PERIOD : time := 10 ns;
 
+    signal ddc_clk : std_logic := '0';
     signal sys_clk : std_logic := '0';
     signal rst_n   : std_logic := '0';
 
@@ -58,6 +60,7 @@ begin
     ----------------------------------------------------------------
 	uut : entity work.hs_dem
 	port map (
+				 ddc_clk  => sys_clk,
 				 sys_clk  => sys_clk,
 				 rst_n    => rst_n,
 				 data_vld => '1',
@@ -82,6 +85,15 @@ begin
         end loop;
     end process;
 
+    ddc_clock_gen : process
+    begin
+        while true loop
+            ddc_clk <= '0';
+            wait for CLK_PERIOD;
+            ddc_clk <= '1';
+            wait for CLK_PERIOD;
+        end loop;
+    end process;
     ----------------------------------------------------------------
     -- Reset Generator
     ----------------------------------------------------------------
