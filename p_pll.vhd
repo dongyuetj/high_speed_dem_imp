@@ -19,8 +19,8 @@ entity p_pll is
 		symb_i  	 : in std_logic_array_8(0 to N-1):=(others=>(others=>'0'));
 		symb_q  	 : in std_logic_array_8(0 to N-1):=(others=>(others=>'0'));
 		sync_symb_en : out std_logic:='0';
-		sync_symb_i  : out std_logic_array_16(0 to N-1):=(others=>(others=>'0'));
-		sync_symb_q  : out std_logic_array_16(0 to N-1):=(others=>(others=>'0'))
+		sync_symb_i  : out std_logic_array_8(0 to N-1):=(others=>(others=>'0'));
+		sync_symb_q  : out std_logic_array_8(0 to N-1):=(others=>(others=>'0'))
     );
 end p_pll;
 
@@ -173,8 +173,8 @@ begin
 			end if;
 			sync_symb_en <= m_axis_dout_tvalid(0);
 			for ii in 0 to N-1 loop
-				sync_symb_i(ii) <= phase_detection_real(ii)(24 downto 9) ;
-				sync_symb_q(ii) <= phase_detection_imag(ii)(24 downto 9) ;
+				sync_symb_i(ii) <= phase_detection_real(ii)(24 downto 17) ;
+				sync_symb_q(ii) <= phase_detection_imag(ii)(24 downto 17) ;
 				if m_axis_dout_tvalid(ii) = '1' then
 					case iq_sign(ii) is
 						when "00" => --  pi/4

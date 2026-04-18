@@ -90,10 +90,11 @@ begin
 	begin
 		if rising_edge(sys_clk) then
 			iq_vld_d <= iq_vld; 
-			cnt_div <= cnt_div + 1;
-			if cnt_div = 32 then
+			if cnt_div = 7 then
 				iq_vld <= '1';
+				cnt_div <= (others=>'0');
 			else
+				cnt_div <= cnt_div + 1;
 				iq_vld <= '0';
 			end if;
 		end if;

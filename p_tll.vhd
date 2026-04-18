@@ -210,8 +210,8 @@ begin
 	process(sys_clk)
 	begin
 		if rising_edge(sys_clk) then
-			if iq_vld_d(6) = '1' then
-				for ii in 0 to N-1 loop
+			for ii in 0 to N-1 loop
+				if iq_vld_d(6) = '1' then
 					if underflow(ii) = '1' then
 						symb_en(ii) <= '1';
 						symb_i(ii)  <= std_logic_vector(xI_t(ii));
@@ -219,10 +219,10 @@ begin
 					else
 						symb_en(ii) <= '0';
 					end if;
-				end loop;
-			else
-				symb_en <= (others=>'0');
-			end if;
+				else
+					symb_en(ii) <= ('0');
+				end if;
+			end loop;
 		end if;
 	end process;
 
