@@ -25,11 +25,11 @@ architecture sim of tb_tb_p_pll is
         sys_clk 	 : in  std_logic;
         rst_n   	 : in  std_logic;
 		symb_en 	 : in std_logic;
-		symb_i  	 : in std_logic_array_8(N-1 downto 0):=(others=>(others=>'0'));
-		symb_q  	 : in std_logic_array_8(N-1 downto 0):=(others=>(others=>'0'));
-		sync_symb_en : out std_logic_vector(N-1 downto 0):=(others=>'0');
-		sync_symb_i  : out std_logic_array_16(N-1 downto 0):=(others=>(others=>'0'));
-		sync_symb_q  : out std_logic_array_16(N-1 downto 0):=(others=>(others=>'0'))
+		symb_i  	 : in std_logic_array_8(0 to N-1):=(others=>(others=>'0'));
+		symb_q  	 : in std_logic_array_8(0 to N-1):=(others=>(others=>'0'));
+		sync_symb_en : out std_logic:='0';
+		sync_symb_i  : out std_logic_array_16(0 to N-1):=(others=>(others=>'0'));
+		sync_symb_q  : out std_logic_array_16(0 to N-1):=(others=>(others=>'0'))
     );
 	end component;
 
@@ -40,12 +40,12 @@ architecture sim of tb_tb_p_pll is
 
     -- DUT I/O
 	signal symb_en 	   : std_logic:='0';
-    signal symb_i      : std_logic_array_8(N-1 downto 0):=(others=>(others=>'0'));
-    signal symb_q      : std_logic_array_8(N-1 downto 0):=(others=>(others=>'0'));
+    signal symb_i      : std_logic_array_8(0 to N-1):=(others=>(others=>'0'));
+    signal symb_q      : std_logic_array_8(0 to N-1):=(others=>(others=>'0'));
 
-	signal sync_symb_en : std_logic_vector(N-1 downto 0):=(others=>'0');
-	signal sync_symb_i  : std_logic_array_16(N-1 downto 0):=(others=>(others=>'0'));
-	signal sync_symb_q  : std_logic_array_16(N-1 downto 0):=(others=>(others=>'0'));
+	signal sync_symb_en : std_logic:='0';
+	signal sync_symb_i  : std_logic_array_16(0 to N-1):=(others=>(others=>'0'));
+	signal sync_symb_q  : std_logic_array_16(0 to N-1):=(others=>(others=>'0'));
 
 	signal cnt_div 		: unsigned(7 downto 0):=(others=>'0');
 	signal iq_vld  		: std_logic:='0';
@@ -414,7 +414,7 @@ begin
     begin
         if rising_edge(sys_clk) then
 			for ii in 0 to 7 loop
-				if sync_symb_en(ii) = '1' then
+				if sync_symb_en = '1' then
 					write(buf, to_integer(signed(sync_symb_i(ii))));
 					writeline(rec_w_i, buf);
 				end if;
@@ -430,7 +430,7 @@ begin
     begin
         if rising_edge(sys_clk) then
 			for ii in 0 to 7 loop
-				if sync_symb_en(ii) = '1' then
+				if sync_symb_en = '1' then
 					write(buf, to_integer(signed(sync_symb_q(ii))));
 					writeline(rec_w_q, buf);
 				end if;

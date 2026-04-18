@@ -39,11 +39,11 @@ architecture sim of tb_tb_p_tll is
     signal rst_n   : std_logic := '0';
 
     -- DUT I/O
-	signal data_i  		: std_logic_array_8(N-1 downto 0):=(others=>(others=>'0'));
-	signal data_q  		: std_logic_array_8(N-1 downto 0):=(others=>(others=>'0'));
-	signal symb_en 		: std_logic_vector(N-1 downto 0):=(others=>'0');
-	signal symb_i  		: std_logic_array_16(N-1 downto 0):=(others=>(others=>'0'));
-	signal symb_q  		: std_logic_array_16(N-1 downto 0):=(others=>(others=>'0'));
+	signal data_i  		: std_logic_array_8(0 to N-1):=(others=>(others=>'0'));
+	signal data_q  		: std_logic_array_8(0 to N-1):=(others=>(others=>'0'));
+	signal symb_en 		: std_logic_vector(0 to N-1):=(others=>'0');
+	signal symb_i  		: std_logic_array_16(0 to N-1):=(others=>(others=>'0'));
+	signal symb_q  		: std_logic_array_16(0 to N-1):=(others=>(others=>'0'));
 	signal cnt_div 		: unsigned(7 downto 0):=(others=>'0');
 	signal iq_vld  		: std_logic:='0';
 	signal iq_vld_d  	: std_logic:='0';
