@@ -136,7 +136,7 @@ begin
             if not endfile(rec_r_i1) then
                 readline(rec_r_i1, l);
                 read(l, data_temp);
-                data0_i <= std_logic_vector(to_signed(data_temp,16));
+                data1_i <= std_logic_vector(to_signed(data_temp,16));
             end if;
         end if;
     end process;
@@ -152,7 +152,7 @@ begin
             if not endfile(rec_r_q1) then
                 readline(rec_r_q1, l);
                 read(l, data_temp);
-                data0_q <= std_logic_vector(to_signed(data_temp,16));
+                data1_q <= std_logic_vector(to_signed(data_temp,16));
             end if;
         end if;
     end process;

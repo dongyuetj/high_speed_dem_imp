@@ -9,6 +9,8 @@ use IEEE.STD_LOGIC_1164.ALL;
 use IEEE.NUMERIC_STD.ALL;
 library work;
 use work.my_dem_pkg.all;
+use std.textio.all;
+library work;
 
 entity hs_dem is
 	generic( N : integer := 8);
@@ -118,7 +120,7 @@ architecture rtl of hs_dem is
 			 );
 	end component;
 
-	signal log_ref				: std_logic_vector(31 downto 0):=(others=>'0');
+	signal log_ref				: std_logic_vector(31 downto 0):=x"408515B5";
 	signal power_out 			: std_logic_vector(31 downto 0):=(others=>'0');
 	signal exp_gain 			: std_logic_vector(31 downto 0):=(others=>'0');
 	signal agc_error 			: std_logic_vector(31 downto 0):=(others=>'0');
@@ -180,6 +182,8 @@ architecture rtl of hs_dem is
 	signal p2s_wr_rst_i_busy,p2s_wr_rst_q_busy		: std_logic:='0';
 	signal p2s_rd_rst_i_busy,p2s_rd_rst_q_busy		: std_logic:='0';
 	signal p2s_sts									: std_logic:='0';
+	file rec_w_i : text open write_mode is "D:\projects\46_high_speed_dem\sim\hs_symb_i.txt";
+	file rec_w_q : text open write_mode is "D:\projects\46_high_speed_dem\sim\hs_symb_q.txt";
 begin
 
     process(sys_clk)
@@ -208,6 +212,23 @@ begin
             end if;
         end if;
     end process;
+
+	process(sys_clk)
+	begin
+		if rising_edge(sys_clk) then
+			if (srst = '1' or  wr_rst_busy0 = '1' or wr_rst_busy1 = '1') then
+				wr_en0 <= '0';
+				wr_en1 <= '0';
+				din0   <= (others=>'0');
+				din1   <= (others=>'0'); 
+			else
+				wr_en0 <= data_vld ;
+				wr_en1 <= data_vld ;
+				din0   <= data0_i ;
+				din1   <= data0_q ; 
+			end if;
+		end if;
+	end process;
 
 	u_fifo_i: fifo_s2p
 	port map(
@@ -268,8 +289,8 @@ begin
 			wave_in_valid	<=	rd_en_d;
 			if rd_en_d = '1' then
 				for ii in 0 to N-1 loop
-					wave_in_i(ii) <= dout0((ii+1)*16-1 downto ii*16);  
-					wave_in_q(ii) <= dout1((ii+1)*16-1 downto ii*16);
+					wave_in_i(N-1-ii) <= dout0((ii+1)*16-1 downto ii*16);  
+					wave_in_q(N-1-ii) <= dout1((ii+1)*16-1 downto ii*16);
 				end loop;
 			end if;
 		end if;
@@ -329,6 +350,38 @@ begin
 				symb_i  => symb_i ,
 				symb_q  => symb_q 
 			);
+
+    ----------------------------------------------------------------
+    -- Write I Channel
+    ----------------------------------------------------------------
+    process(sys_clk)
+        variable buf : line;
+    begin
+        if rising_edge(sys_clk) then
+			for ii in 0 to 7 loop
+				if symb_en(ii) = '1' then
+					write(buf, to_integer(signed(symb_i(ii))));
+					writeline(rec_w_i, buf);
+				end if;
+			end loop;
+        end if;
+    end process;
+
+    ----------------------------------------------------------------
+    -- Write Q Channel
+    ----------------------------------------------------------------
+    process(sys_clk)
+        variable buf : line;
+    begin
+        if rising_edge(sys_clk) then
+			for ii in 0 to 7 loop
+				if symb_en(ii) = '1' then
+					write(buf, to_integer(signed(symb_q(ii))));
+					writeline(rec_w_q, buf);
+				end if;
+			end loop;
+        end if;
+    end process;
 
 	process(sys_clk)
 	begin

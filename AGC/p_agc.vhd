@@ -171,7 +171,8 @@ architecture arch of p_agc is
 	constant ONE 				: std_logic_vector(31 downto 0):=x"3F800000";
 --	constant LOG_REF 			: std_logic_vector(31 downto 0):=x"40F33A93"; -- log(2000)
 --	constant LOG_REF 			: std_logic_vector(31 downto 0):=x"408515B5"; -- log(64)
-	constant MAX_EXP_GAIN		: std_logic_vector(31 downto 0):=x"43960000";  -- 300
+	--constant MAX_EXP_GAIN		: std_logic_vector(31 downto 0):=x"43960000";  -- 300
+	constant MAX_EXP_GAIN		: std_logic_vector(31 downto 0):=x"40800000";  -- 4
 	
 
 	signal wave_i_enlarge_width : std_logic_array_32(0 to N-1):=(others=>(others=>'0'));
