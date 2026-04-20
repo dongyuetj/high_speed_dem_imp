@@ -28,8 +28,8 @@ architecture sim of tb_tb_p_pll is
 		symb_i  	 : in std_logic_array_8(0 to N-1):=(others=>(others=>'0'));
 		symb_q  	 : in std_logic_array_8(0 to N-1):=(others=>(others=>'0'));
 		sync_symb_en : out std_logic:='0';
-		sync_symb_i  : out std_logic_array_16(0 to N-1):=(others=>(others=>'0'));
-		sync_symb_q  : out std_logic_array_16(0 to N-1):=(others=>(others=>'0'))
+		sync_symb_i  : out std_logic_array_8(0 to N-1):=(others=>(others=>'0'));
+		sync_symb_q  : out std_logic_array_8(0 to N-1):=(others=>(others=>'0'))
     );
 	end component;
 
@@ -44,32 +44,32 @@ architecture sim of tb_tb_p_pll is
     signal symb_q      : std_logic_array_8(0 to N-1):=(others=>(others=>'0'));
 
 	signal sync_symb_en : std_logic:='0';
-	signal sync_symb_i  : std_logic_array_16(0 to N-1):=(others=>(others=>'0'));
-	signal sync_symb_q  : std_logic_array_16(0 to N-1):=(others=>(others=>'0'));
+	signal sync_symb_i  : std_logic_array_8(0 to N-1):=(others=>(others=>'0'));
+	signal sync_symb_q  : std_logic_array_8(0 to N-1):=(others=>(others=>'0'));
 
 	signal cnt_div 		: unsigned(7 downto 0):=(others=>'0');
 	signal iq_vld  		: std_logic:='0';
 	signal iq_vld_d  	: std_logic:='0';
 
     -- File I/O
-    file rec_r_i0 : text open read_mode  is "D:\projects\46_high_speed_dem\sim\rd_symb_i0.txt";
-    file rec_r_q0 : text open read_mode  is "D:\projects\46_high_speed_dem\sim\rd_symb_q0.txt";
-    file rec_r_i1 : text open read_mode  is "D:\projects\46_high_speed_dem\sim\rd_symb_i1.txt";
-    file rec_r_q1 : text open read_mode  is "D:\projects\46_high_speed_dem\sim\rd_symb_q1.txt";
-    file rec_r_i2 : text open read_mode  is "D:\projects\46_high_speed_dem\sim\rd_symb_i2.txt";
-    file rec_r_q2 : text open read_mode  is "D:\projects\46_high_speed_dem\sim\rd_symb_q2.txt";
-    file rec_r_i3 : text open read_mode  is "D:\projects\46_high_speed_dem\sim\rd_symb_i3.txt";
-    file rec_r_q3 : text open read_mode  is "D:\projects\46_high_speed_dem\sim\rd_symb_q3.txt";
-    file rec_r_i4 : text open read_mode  is "D:\projects\46_high_speed_dem\sim\rd_symb_i4.txt";
-    file rec_r_q4 : text open read_mode  is "D:\projects\46_high_speed_dem\sim\rd_symb_q4.txt";
-    file rec_r_i5 : text open read_mode  is "D:\projects\46_high_speed_dem\sim\rd_symb_i5.txt";
-    file rec_r_q5 : text open read_mode  is "D:\projects\46_high_speed_dem\sim\rd_symb_q5.txt";
-    file rec_r_i6 : text open read_mode  is "D:\projects\46_high_speed_dem\sim\rd_symb_i6.txt";
-    file rec_r_q6 : text open read_mode  is "D:\projects\46_high_speed_dem\sim\rd_symb_q6.txt";
-    file rec_r_i7 : text open read_mode  is "D:\projects\46_high_speed_dem\sim\rd_symb_i7.txt";
-    file rec_r_q7 : text open read_mode  is "D:\projects\46_high_speed_dem\sim\rd_symb_q7.txt";
-    file rec_w_i : text open write_mode is "D:\projects\46_high_speed_dem\sim\sync_symb_i.txt";
-    file rec_w_q : text open write_mode is "D:\projects\46_high_speed_dem\sim\sync_symb_q.txt";
+    file rec_r_i0 : text open read_mode  is "D:\projects\46_high_speed_dem\sim\pll_data_i0.txt";
+    file rec_r_q0 : text open read_mode  is "D:\projects\46_high_speed_dem\sim\pll_data_q0.txt";
+    file rec_r_i1 : text open read_mode  is "D:\projects\46_high_speed_dem\sim\pll_data_i1.txt";
+    file rec_r_q1 : text open read_mode  is "D:\projects\46_high_speed_dem\sim\pll_data_q1.txt";
+    file rec_r_i2 : text open read_mode  is "D:\projects\46_high_speed_dem\sim\pll_data_i2.txt";
+    file rec_r_q2 : text open read_mode  is "D:\projects\46_high_speed_dem\sim\pll_data_q2.txt";
+    file rec_r_i3 : text open read_mode  is "D:\projects\46_high_speed_dem\sim\pll_data_i3.txt";
+    file rec_r_q3 : text open read_mode  is "D:\projects\46_high_speed_dem\sim\pll_data_q3.txt";
+    file rec_r_i4 : text open read_mode  is "D:\projects\46_high_speed_dem\sim\pll_data_i4.txt";
+    file rec_r_q4 : text open read_mode  is "D:\projects\46_high_speed_dem\sim\pll_data_q4.txt";
+    file rec_r_i5 : text open read_mode  is "D:\projects\46_high_speed_dem\sim\pll_data_i5.txt";
+    file rec_r_q5 : text open read_mode  is "D:\projects\46_high_speed_dem\sim\pll_data_q5.txt";
+    file rec_r_i6 : text open read_mode  is "D:\projects\46_high_speed_dem\sim\pll_data_i6.txt";
+    file rec_r_q6 : text open read_mode  is "D:\projects\46_high_speed_dem\sim\pll_data_q6.txt";
+    file rec_r_i7 : text open read_mode  is "D:\projects\46_high_speed_dem\sim\pll_data_i7.txt";
+    file rec_r_q7 : text open read_mode  is "D:\projects\46_high_speed_dem\sim\pll_data_q7.txt";
+    file rec_w_i : text open write_mode is "D:\projects\46_high_speed_dem\sim\pll_sync_symb_i.txt";
+    file rec_w_q : text open write_mode is "D:\projects\46_high_speed_dem\sim\pll_sync_symb_q.txt";
 
 begin
 
@@ -93,7 +93,7 @@ begin
 		if rising_edge(sys_clk) then
 			iq_vld_d <= iq_vld; 
 			cnt_div <= cnt_div + 1;
-			if cnt_div = 32 then
+			if cnt_div = 31 then
 				iq_vld <= '1';
 			else
 				iq_vld <= '0';
