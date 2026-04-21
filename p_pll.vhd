@@ -53,10 +53,10 @@ architecture rtl of p_pll is
 	-- Q0.16
 	constant ZEROP25_Q0p16			: signed(16 downto 0):=to_signed(2**14,17);
 
-	constant PI_Q8P26				: signed(34 downto 0):=to_signed(210828714,35); -- round(pi * 2^26)
-	constant PI_Q9P26				: signed(35 downto 0):=to_signed(210828714,36); -- round(pi * 2^26)
-	constant DOUBLE_PI_Q8P26		: signed(34 downto 0):=to_signed(2*210828714,35);
-	constant DOUBLE_PI_Q9P26		: signed(35 downto 0):=to_signed(2*210828714,36);
+	constant PI_Q8P13				: signed(21 downto 0):=to_signed(25736,22); -- round(pi * 2^13)
+	constant PI_Q9P13				: signed(22 downto 0):=to_signed(25736,23); -- round(pi * 2^13)
+	constant DOUBLE_PI_Q8P13		: signed(21 downto 0):=to_signed(2*25736,22);
+	constant DOUBLE_PI_Q9P13		: signed(22 downto 0):=to_signed(2*25736,23);
 
 	constant PI_Q2P13				: signed(15 downto 0):=to_signed(25736,16); -- round(pi * 2^13)
 
@@ -89,24 +89,24 @@ architecture rtl of p_pll is
 	signal int_out	 				: signed(16 downto 0):=(others=>'0');
 	signal loop_out					: signed(17 downto 0):=(others=>'0');
 
-	signal intx1					: signed(20 downto 0):=(others=>'0');
-	signal intx2					: signed(20 downto 0):=(others=>'0');
-	signal intx4					: signed(20 downto 0):=(others=>'0');
-	signal intx8					: signed(20 downto 0):=(others=>'0');
+	signal intx1					: signed(21 downto 0):=(others=>'0');
+	signal intx2					: signed(21 downto 0):=(others=>'0');
+	signal intx4					: signed(21 downto 0):=(others=>'0');
+	signal intx8					: signed(21 downto 0):=(others=>'0');
 
-	signal intx1_t					: signed(20 downto 0):=(others=>'0');
-	signal intx2_t					: signed(20 downto 0):=(others=>'0');
-	signal intx3_t					: signed(20 downto 0):=(others=>'0');
-	signal intx4_t					: signed(20 downto 0):=(others=>'0');
-	signal intx5_t					: signed(20 downto 0):=(others=>'0');
-	signal intx6_t					: signed(20 downto 0):=(others=>'0');
-	signal intx7_t					: signed(20 downto 0):=(others=>'0');
-	signal intx8_t					: signed(20 downto 0):=(others=>'0');
+	signal intx1_t					: signed(21 downto 0):=(others=>'0');
+	signal intx2_t					: signed(21 downto 0):=(others=>'0');
+	signal intx3_t					: signed(21 downto 0):=(others=>'0');
+	signal intx4_t					: signed(21 downto 0):=(others=>'0');
+	signal intx5_t					: signed(21 downto 0):=(others=>'0');
+	signal intx6_t					: signed(21 downto 0):=(others=>'0');
+	signal intx7_t					: signed(21 downto 0):=(others=>'0');
+	signal intx8_t					: signed(21 downto 0):=(others=>'0');
 
 	signal phase_int 				: signed(21 downto 0):=(others=>'0');
-	signal phase_int_wrap 			: signed(34 downto 0):=(others=>'0');
-	signal phase_int_v	 			: signed_array_36(0 to N-1):=(others=>(others=>'0'));
-	signal phase_int_v_wrap	 		: signed_array_36(0 to N-1):=(others=>(others=>'0'));
+	signal phase_int_wrap 			: signed(21 downto 0):=(others=>'0');
+	signal phase_int_v	 			: signed_array_23(0 to N-1):=(others=>(others=>'0'));
+	signal phase_int_v_wrap	 		: signed_array_23(0 to N-1):=(others=>(others=>'0'));
 	signal phase_int_v_wrap_fix	 	: std_logic_array_16(0 to N-1):=(others=>(others=>'0'));
 begin
 
@@ -134,7 +134,6 @@ begin
 			end loop;
 		end if;
 	end process;
-
 	
 	-- (Q7.0 + 1j * Q7.0) * (Q1.14 + 1j *Q1.14) = Q8.14 + Q8.14 = Q9.14
 	gen_nco: for ii in 0 to N-1 generate
@@ -213,8 +212,11 @@ begin
 	process(sys_clk)
 	begin
 		if rising_edge(sys_clk) then
+			if rst_n = '0' then
+				err <= (others => '0');
+				err_1 <= (others => (others => '0'));
 			-- Q10.14 + Q10.14 = Q11.14
-			if pll_vld_d(0) = '1' then
+			elsif pll_vld_d(0) = '1' then
 				for ii in 0 to N/2 -1 loop
 					err_1(ii) <= resize(phase_diff(2*ii),26) + resize(phase_diff(2*ii+1),26);
 				end loop;
@@ -239,7 +241,8 @@ begin
 			-- err Q13.14 / 8 = Q10.17
 			-- err_avg = Q10.5
 			if pll_vld_d(3) = '1' then
-				err_avg <= err(27 downto 12)
+				err_avg <= err(27 downto 12);
+			end if;
 		end if;
 	end process;
 
@@ -263,7 +266,7 @@ begin
 					-- Q2.16 -> Q7.16
 					int_temp <= int_temp + resize(K2xerr,24);
 				end if; 
-				-- Q7.16
+				-- Q7.16 -> Q0.16
 				if pll_vld_d(6)  = '1' then
 					if int_temp > ZEROP25 then
 						int_out <= ZEROP25_Q0p16;
@@ -285,7 +288,7 @@ begin
 				-- Q2.16 -> Q2.13
 				-- Q2.13 + Q3.13  = Q4.13
 				loop_out <= resize(K1xerr(18 downto 3),18) + resize(int_out,18);
-				-- Q4.13 -> Q8.13
+				-- Q0.16 -> Q5.16
 				intx1  <= resize(int_out,22);
 				intx2  <= resize(int_out,22) sll 1;
 				intx4  <= resize(int_out,22) sll 2;
@@ -302,7 +305,9 @@ begin
 				phase_int <= (others=>'0');
 			else
 				if pll_vld_d(8)  = '1' then
+					-- Q4.13 + Q4.13 = Q5.13 -> Q8.13
 					phase_int <= phase_int + resize(loop_out,22);
+					-- Q5.16
 					intx1_t   <= intx1;
 					intx2_t   <= intx2;
 					intx3_t   <= intx1 + intx2; 
@@ -316,15 +321,15 @@ begin
 		end if;
 	end process;
 
-	-- Q8.26
+	-- Q8.13
 	process(sys_clk)
 	begin
 		if rising_edge(sys_clk) then
 			if pll_vld_d(9) = '1' then
-				if phase_int > PI_Q8P26 then
-					phase_int_wrap <= phase_int - DOUBLE_PI_Q8P26;
-				elsif phase_int < - PI_Q8P26 then
-					phase_int_wrap <= phase_int + DOUBLE_PI_Q8P26;
+				if phase_int > PI_Q8P13 then
+					phase_int_wrap <= phase_int - DOUBLE_PI_Q8P13;
+				elsif phase_int < - PI_Q8P13 then
+					phase_int_wrap <= phase_int + DOUBLE_PI_Q8P13;
 				else
 					phase_int_wrap <= phase_int;
 				end if;
@@ -332,33 +337,34 @@ begin
 		end if;
 	end process;
 
-	-- Q9.26 (36 bits)
 	process(sys_clk)
 	begin
 		if rising_edge(sys_clk) then
 			if pll_vld_d(10) = '1' then
-				phase_int_v(0) <= phase_int_wrap + resize(intx1_t,36); 
-				phase_int_v(1) <= phase_int_wrap + resize(intx2_t,36); 
-				phase_int_v(2) <= phase_int_wrap + resize(intx3_t,36); 
-				phase_int_v(3) <= phase_int_wrap + resize(intx4_t,36); 
-				phase_int_v(4) <= phase_int_wrap + resize(intx5_t,36); 
-				phase_int_v(5) <= phase_int_wrap + resize(intx6_t,36); 
-				phase_int_v(6) <= phase_int_wrap + resize(intx7_t,36); 
-				phase_int_v(7) <= phase_int_wrap + resize(intx8_t,36); 
+				-- Q8.13 + Q5.13 = Q9.13
+				phase_int_v(0) <= resize(phase_int_wrap,23) + resize(intx1_t(21 downto 3),23); 
+				phase_int_v(1) <= resize(phase_int_wrap,23) + resize(intx2_t(21 downto 3),23); 
+				phase_int_v(2) <= resize(phase_int_wrap,23) + resize(intx3_t(21 downto 3),23); 
+				phase_int_v(3) <= resize(phase_int_wrap,23) + resize(intx4_t(21 downto 3),23); 
+				phase_int_v(4) <= resize(phase_int_wrap,23) + resize(intx5_t(21 downto 3),23); 
+				phase_int_v(5) <= resize(phase_int_wrap,23) + resize(intx6_t(21 downto 3),23); 
+				phase_int_v(6) <= resize(phase_int_wrap,23) + resize(intx7_t(21 downto 3),23); 
+				phase_int_v(7) <= resize(phase_int_wrap,23) + resize(intx8_t(21 downto 3),23); 
 			end if;
 		end if;
 	end process;
 
-	-- Q9.26 (36 bits)
+	-- unwrap
+	-- Q9.13
 	process(sys_clk)
 	begin
 		if rising_edge(sys_clk) then
 			for ii in 0 to N-1 loop
 				if pll_vld_d(11) = '1' then
-					if phase_int_v(ii) > PI_Q9P26 then
-						phase_int_v_wrap(ii) <= phase_int_v(ii) - DOUBLE_PI_Q9P26;
-					elsif phase_int_v(ii) < - PI_Q9P26 then
-						phase_int_v_wrap(ii) <= phase_int_v(ii) + DOUBLE_PI_Q9P26;
+					if phase_int_v(ii) > PI_Q9P13 then
+						phase_int_v_wrap(ii) <= phase_int_v(ii) - DOUBLE_PI_Q9P13;
+					elsif phase_int_v(ii) < - PI_Q9P13 then
+						phase_int_v_wrap(ii) <= phase_int_v(ii) + DOUBLE_PI_Q9P13;
 					else
 						phase_int_v_wrap(ii) <= phase_int_v(ii);
 					end if;
@@ -367,6 +373,7 @@ begin
 		end if;
 	end process;
 
+	-- truncation
 	-- Q2.13 (16 bits)
 	process(sys_clk)
 	begin
@@ -374,12 +381,12 @@ begin
 			nco_cfg_vld	<= pll_vld_d(12);
 			for ii in 0 to N-1 loop
 				if pll_vld_d(12) = '1' then
-					if signed(phase_int_v_wrap(ii)) > PI_Q9P26 then
+					if phase_int_v_wrap(ii) > PI_Q9P13 then
 						phase_int_v_wrap_fix(ii) <= std_logic_vector(PI_Q2P13);
-					elsif signed(phase_int_v_wrap(ii)) < - PI_Q9P26 then
+					elsif phase_int_v_wrap(ii) < - PI_Q9P13 then
 						phase_int_v_wrap_fix(ii) <= std_logic_vector(-PI_Q2P13);
 					else
-						phase_int_v_wrap_fix(ii) <= std_logic_vector(phase_int_v_wrap(ii)(28 downto 13));
+						phase_int_v_wrap_fix(ii) <= std_logic_vector(phase_int_v_wrap(ii)(15 downto 0));
 					end if;
 				end if;
 			end loop;
