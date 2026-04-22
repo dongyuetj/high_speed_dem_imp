@@ -20,7 +20,9 @@ entity p_pll is
 		symb_q  	 : in std_logic_array_8(0 to N-1):=(others=>(others=>'0'));
 		sync_symb_en : out std_logic:='0';
 		sync_symb_i  : out std_logic_array_8(0 to N-1):=(others=>(others=>'0'));
-		sync_symb_q  : out std_logic_array_8(0 to N-1):=(others=>(others=>'0'))
+		sync_symb_q  : out std_logic_array_8(0 to N-1):=(others=>(others=>'0'));
+		loop_out_vld : out std_logic:='0';
+		loop_dout	 : out std_logic_vector(17 downto 0):=(others=>'0')
     );
 end p_pll;
 
@@ -248,6 +250,9 @@ begin
 			end if;
 		end if;
 	end process;
+
+	loop_out_vld <= pll_vld_d(6);
+	loop_dout <= std_logic_vector(loop_out) ;
 
 	-- Q8.13
 	process(sys_clk)

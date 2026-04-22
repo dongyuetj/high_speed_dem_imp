@@ -20,7 +20,9 @@ entity p_tll is
 		data_q : in std_logic_array_8(0 to N-1);
 		symb_en : out std_logic_vector(0 to N-1):=(others=>'0');
 		symb_i : out std_logic_array_16(0 to N-1):=(others=>(others=>'0'));
-		symb_q : out std_logic_array_16(0 to N-1):=(others=>(others=>'0'))
+		symb_q : out std_logic_array_16(0 to N-1):=(others=>(others=>'0'));
+		loop_out_vld : out std_logic:='0';
+		loop_dout	 : out std_logic_vector(31 downto 0):=(others=>'0')
     );
 end p_tll;
 
@@ -348,6 +350,9 @@ begin
 			end if;
 		end if;
 	end process;
+
+	loop_out_vld <= iq_vld_d(19);
+	loop_dout <= std_logic_vector(v) ;
 
 	-- update W, loop gain 2^16
 	-- Q8.32, only keep the fractional part.
