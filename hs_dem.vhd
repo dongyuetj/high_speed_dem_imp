@@ -294,6 +294,8 @@ architecture rtl of hs_dem is
 	attribute mark_debug of dem_vld,dem_byte 					 : signal is "TRUE";
 
 	-- synthesis translate_off
+	file rec_w_in_i : text open write_mode is "D:\projects\46_high_speed_dem\sim\hs_agc_i.txt";
+	file rec_w_in_q : text open write_mode is "D:\projects\46_high_speed_dem\sim\hs_agc_q.txt";
 	file rec_w_i : text open write_mode is "D:\projects\46_high_speed_dem\sim\hs_symb_i.txt";
 	file rec_w_q : text open write_mode is "D:\projects\46_high_speed_dem\sim\hs_symb_q.txt";
 	file rec_w_ii : text open write_mode is "D:\projects\46_high_speed_dem\sim\hs_sync_symb_i.txt";
@@ -641,6 +643,40 @@ begin
 			end loop;
 		end if;
 	end process;
+
+	-- synthesis translate_off
+    ----------------------------------------------------------------
+    -- Write I Channel
+    ----------------------------------------------------------------
+    process(sys_clk)
+        variable buf : line;
+    begin
+        if rising_edge(sys_clk) then
+			if iq_vld = '1' then
+				for ii in 0 to N-1 loop
+					write(buf, to_integer(signed(wave_i(ii))));
+					writeline(rec_w_in_i, buf);
+				end loop;
+			end if;
+        end if;
+    end process;
+
+    ----------------------------------------------------------------
+    -- Write Q Channel
+    ----------------------------------------------------------------
+    process(sys_clk)
+        variable buf : line;
+    begin
+        if rising_edge(sys_clk) then
+			if iq_vld = '1' then
+				for ii in 0 to N-1 loop
+					write(buf, to_integer(signed(wave_q(ii))));
+					writeline(rec_w_in_q, buf);
+				end loop;
+			end if;
+        end if;
+    end process;
+	-- synthesis translate_on
 
 	u_tll: p_tll
 	generic map ( N => 8)

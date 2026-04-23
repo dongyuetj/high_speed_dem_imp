@@ -62,7 +62,7 @@ begin
     ----------------------------------------------------------------
 	uut : entity work.hs_dem
 	port map (
-				 ddc_clk  => sys_clk,
+				 ddc_clk  => ddc_clk,
 				 sys_clk  => sys_clk,
 				 rst_n    => rst_n,
 				 data_vld => '1',
@@ -81,9 +81,9 @@ begin
     begin
         while true loop
             sys_clk <= '0';
-            wait for CLK_PERIOD/2;
+            wait for CLK_PERIOD;
             sys_clk <= '1';
-            wait for CLK_PERIOD/2;
+            wait for CLK_PERIOD;
         end loop;
     end process;
 
@@ -110,11 +110,11 @@ begin
     ----------------------------------------------------------------
     -- Read I Channel
     ----------------------------------------------------------------
-    process(sys_clk)
+    process(ddc_clk)
         variable l : line;
         variable data_temp : integer;
     begin
-        if rising_edge(sys_clk) then
+        if rising_edge(ddc_clk) then
             if not endfile(rec_r_i0) then
                 readline(rec_r_i0, l);
                 read(l, data_temp);
@@ -126,11 +126,11 @@ begin
     ----------------------------------------------------------------
     -- Read Q Channel
     ----------------------------------------------------------------
-    process(sys_clk)
+    process(ddc_clk)
         variable l : line;
         variable data_temp : integer;
     begin
-        if rising_edge(sys_clk) then
+        if rising_edge(ddc_clk) then
             if not endfile(rec_r_q0) then
                 readline(rec_r_q0, l);
                 read(l, data_temp);
@@ -142,11 +142,11 @@ begin
     ----------------------------------------------------------------
     -- Read I Channel
     ----------------------------------------------------------------
-    process(sys_clk)
+    process(ddc_clk)
         variable l : line;
         variable data_temp : integer;
     begin
-        if rising_edge(sys_clk) then
+        if rising_edge(ddc_clk) then
             if not endfile(rec_r_i1) then
                 readline(rec_r_i1, l);
                 read(l, data_temp);
@@ -158,11 +158,11 @@ begin
     ----------------------------------------------------------------
     -- Read Q Channel
     ----------------------------------------------------------------
-    process(sys_clk)
+    process(ddc_clk)
         variable l : line;
         variable data_temp : integer;
     begin
-        if rising_edge(sys_clk) then
+        if rising_edge(ddc_clk) then
             if not endfile(rec_r_q1) then
                 readline(rec_r_q1, l);
                 read(l, data_temp);
