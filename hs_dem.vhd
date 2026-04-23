@@ -492,6 +492,24 @@ begin
 --		end if;
 --	end process;
 
+	-- only for sim
+	process(sys_clk)
+	begin
+		if rising_edge(sys_clk) then
+			if rst_n = '0'  then	
+				srst_fifo <= '1';
+				rst_n_agc <= '0';
+				rst_n_tll <= '0';
+				rst_n_pll <= '0';
+			else
+				srst_fifo <= '0';
+				rst_n_agc <= '1';
+				rst_n_tll <= '1';
+				rst_n_pll <= '1';
+			end if;
+		end if;
+	end process;
+
 	process(ddc_clk)
 	begin
 		if rising_edge(ddc_clk) then
