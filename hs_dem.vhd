@@ -302,6 +302,23 @@ architecture rtl of hs_dem is
 	file rec_w_qq : text open write_mode is "D:\projects\46_high_speed_dem\sim\hs_sync_symb_q.txt";
 	-- synthesis translate_on
 begin
+	-- only for sim
+	process(sys_clk)
+	begin
+		if rising_edge(sys_clk) then
+			if rst_n = '0'  then	
+				srst_fifo <= '1';
+				rst_n_agc <= '0';
+				rst_n_tll <= '0';
+				rst_n_pll <= '0';
+			else
+				srst_fifo <= '0';
+				rst_n_agc <= '1';
+				rst_n_tll <= '1';
+				rst_n_pll <= '1';
+			end if;
+		end if;
+	end process;
 
 	-- sym_type 
 	-- 000: BPSK
@@ -341,7 +358,7 @@ begin
 --	PLL_DET_WIN_LEN <= unsigned(probe_out11);
 --	PLL_LOOP_ABS		<= signed(probe_out12);
 --	PLL_LOCKED_NUM	<= unsigned(probe_out13); 
-
+--
 --	process(sys_clk)
 --	begin
 --		if rising_edge(sys_clk) then
@@ -494,23 +511,6 @@ begin
 --		end if;
 --	end process;
 
-	-- only for sim
-	process(sys_clk)
-	begin
-		if rising_edge(sys_clk) then
-			if rst_n = '0'  then	
-				srst_fifo <= '1';
-				rst_n_agc <= '0';
-				rst_n_tll <= '0';
-				rst_n_pll <= '0';
-			else
-				srst_fifo <= '0';
-				rst_n_agc <= '1';
-				rst_n_tll <= '1';
-				rst_n_pll <= '1';
-			end if;
-		end if;
-	end process;
 
 	process(ddc_clk)
 	begin

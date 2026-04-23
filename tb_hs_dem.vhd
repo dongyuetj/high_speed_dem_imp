@@ -31,6 +31,7 @@ architecture sim of tb_tb_hs_dem is
     );
 	end component;
 
+    constant DDC_CLK_PERIOD : time := 20 ns;
     constant CLK_PERIOD : time := 10 ns;
 
     signal ddc_clk : std_logic := '0';
@@ -49,8 +50,8 @@ architecture sim of tb_tb_hs_dem is
     -- File I/O
   --  file rec_r_i0 : text open read_mode  is "D:\projects\46_high_speed_dem\sim\rd_data_i.txt";
   --  file rec_r_q0 : text open read_mode  is "D:\projects\46_high_speed_dem\sim\rd_data_q.txt";
-    file rec_r_i0 : text open read_mode  is "D:\projects\46_high_speed_dem\sim\ddc_i0.txt";
-    file rec_r_q0 : text open read_mode  is "D:\projects\46_high_speed_dem\sim\ddc_q0.txt";
+    file rec_r_i0 : text open read_mode  is "D:\projects\46_high_speed_dem\sim\data_i0.txt";
+    file rec_r_q0 : text open read_mode  is "D:\projects\46_high_speed_dem\sim\data_q0.txt";
     file rec_r_i1 : text open read_mode  is "D:\projects\46_high_speed_dem\sim\ddc_i1.txt";
     file rec_r_q1 : text open read_mode  is "D:\projects\46_high_speed_dem\sim\ddc_q1.txt";
     file rec_w_i : text open write_mode is "D:\projects\46_high_speed_dem\sim\dem_byte.txt";
@@ -91,9 +92,9 @@ begin
     begin
         while true loop
             ddc_clk <= '0';
-            wait for CLK_PERIOD;
+            wait for DDC_CLK_PERIOD;
             ddc_clk <= '1';
-            wait for CLK_PERIOD;
+            wait for DDC_CLK_PERIOD;
         end loop;
     end process;
     ----------------------------------------------------------------

@@ -191,7 +191,11 @@ begin
 					xI(ii) <= mulI0(ii) + mulI1(ii); -- do not need to extention due to 2 signed bits
 					xQ(ii) <= mulQ0(ii) + mulQ1(ii);
 				end loop;
-				mu_cur <= mu(N-1);
+				for ii in N-1 downto 0 loop
+					if underflow(ii) = '1' then
+						mu_cur <= mu(ii);
+					end if;
+				end loop;
 			end if;
 		end if;
 	end process;
