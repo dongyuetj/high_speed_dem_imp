@@ -52,7 +52,7 @@ architecture rtl of p_tll is
 	constant ONE_Q1p16 	: signed(17 downto 0):= to_signed(2**16,18);
 
 	signal first_data_in_flag : std_logic:='0';
-	signal iq_vld_d		: std_logic_vector(19 downto 0):=(others=>'0');
+	signal iq_vld_d		: std_logic_vector(13 downto 0):=(others=>'0');
 	signal data_i_reg   : std_logic_array_8(0 to 2*N-1):=(others=>(others=>'0'));
 	signal data_q_reg 	: std_logic_array_8(0 to 2*N-1):=(others=>(others=>'0'));
 	signal CNT  		: unsigned(15 downto 0):= (others=>'0');
@@ -102,6 +102,14 @@ architecture rtl of p_tll is
 begin       
 
 	-- calculate diff for all branches
+	Wx1 <= W;
+	Wx2 <= (W&'0');
+	Wx3 <= ('0'&W)+ (W&'0');
+	Wx4 <= (W&"00");
+	Wx5 <= ("00"&W) + (W&"00");
+	Wx6 <= (W&"00") + ('0'&W&'0');
+	Wx7 <= (W&"000") - ("000"&W);
+	Wx8 <= (W&"000");
     process(sys_clk)
     begin
         if rising_edge(sys_clk) then
@@ -122,16 +130,6 @@ begin
 					data_i_reg(ii) <= data_i_reg(ii+8);
 					data_q_reg(ii) <= data_q_reg(ii+8);
 				end loop;
-				Wx1 <= W;
-				Wx2 <= (W&'0');
-				Wx3 <= ('0'&W)+ (W&'0');
-				Wx4 <= (W&"00");
-				Wx5 <= ("00"&W) + (W&"00");
-				Wx6 <= (W&"00") + ('0'&W&'0');
-				Wx7 <= (W&"000") - ("000"&W);
-				Wx8 <= (W&"000");
-			end if;
-			if iq_vld_d(0) = '1' then
 				diff(0) <= CNT ;
 				diff(1) <= CNT - Wx1(15 downto 0);
 				diff(2) <= CNT - Wx2(15 downto 0);
@@ -149,15 +147,19 @@ begin
 	process(sys_clk)
 	begin
 		if rising_edge(sys_clk) then
-			if iq_vld_d(1) = '1' then
+			if iq_vld_d(0) = '1' then
 				for ii in 0 to N - 1 loop
 					if diff(ii) < W then
 						underflow(ii) <= '1';
 						-- unsigned 16 was extended to Q1.16 by adding a signed bit and an integer bit
 						mu(ii) <= '0' & diff(ii) & '0';
+						mu_ext(ii)        <= signed('0' & diff(ii) & '0');
+						one_minus_mu(ii)  <= ONE_Q1p16 - signed('0' & diff(ii) & '0');
 					else
 						underflow(ii) <= '0';
 						mu(ii) <= mu_cur;
+						mu_ext(ii)        <= signed(mu_cur);
+						one_minus_mu(ii)  <= ONE_Q1p16 - signed(mu_cur);
 					end if;
 				end loop;
 			end if;
@@ -168,14 +170,8 @@ begin
 	process(sys_clk)
 	begin
 		if rising_edge(sys_clk) then
-			if iq_vld_d(2) = '1' then
-				for ii in 0 to N-1 loop
-					mu_ext(ii)        <= signed(mu(ii));
-					one_minus_mu(ii)  <= ONE_Q1p16 - signed(mu(ii));
-				end loop;
-			end if;
 			-- Q1.16 * Q7.0 = Q8.16, 2 signed bits + 8 integer bits + 16 fractional bits
-			if iq_vld_d(3) = '1' then
+			if iq_vld_d(1) = '1' then
 				for ii in 0 to N-1 loop
 					mulI0(ii) <= mu_ext(ii) * signed(data_i_reg(ii+1));
 					mulQ0(ii) <= mu_ext(ii) * signed(data_q_reg(ii+1));
@@ -186,7 +182,7 @@ begin
 				end loop;
 			end if;
 			-- Q8.16 + Q8.16 = Q9.16
-			if iq_vld_d(4) = '1' then
+			if iq_vld_d(2) = '1' then
 				for ii in 0 to N-1 loop
 					xI(ii) <= mulI0(ii) + mulI1(ii); -- do not need to extention due to 2 signed bits
 					xQ(ii) <= mulQ0(ii) + mulQ1(ii);
@@ -201,24 +197,17 @@ begin
 	end process;
 
 	-- truncation, Q9.16 -> Q9.6
-	process(sys_clk)
-	begin
-		if rising_edge(sys_clk) then
-			if iq_vld_d(5) = '1' then
-				for ii in 0 to N - 1 loop
-					xI_t(ii) <= xI(ii)(25 downto 10);
-					xQ_t(ii) <= xQ(ii)(25 downto 10);
-				end loop;
-			end if;
-		end if;
-	end process;
+	gen: for ii in 0 to N-1 generate
+		xI_t(ii) <= xI(ii)(25 downto 10);
+		xQ_t(ii) <= xQ(ii)(25 downto 10);
+	end generate gen;
 
 	process(sys_clk)
 	begin
 		if rising_edge(sys_clk) then
 			symb_en <= (others => '0');
 			for i in 0 to 7 loop
-				if iq_vld_d(i+6) = '1' then
+				if iq_vld_d(3+i) = '1' then
 					if underflow(i) = '1' then
 						symb_en(i) <= '1';
 						symb_i(i)  <= std_logic_vector(xI_t(i));
@@ -233,7 +222,7 @@ begin
 	process(sys_clk)
 	begin
 		if rising_edge(sys_clk) then
-			if iq_vld_d(6) = '1' then
+			if iq_vld_d(3) = '1' then
 				-- Q9.6 - Q9.6 = Q10.6 
 				diffI(0) <= resize(TEDBuffI(1),17) - resize(xI_t(0),17);
 				diffQ(0) <= resize(TEDBuffQ(1),17) - resize(xQ_t(0),17);
@@ -244,7 +233,7 @@ begin
 					diffQ(ii) <= resize(xQ_t(ii-2),17) - resize(xQ_t(ii),17);
 				end loop;
 			end if;
-			if iq_vld_d(7) = '1' then
+			if iq_vld_d(4) = '1' then
 				-- Q9.6 * Q10.6 = Q19.12 (two signed bits) , vld7
 				mulI(0)  <= TEDBuffI(0)* diffI(0);
 				mulQ(0)  <= TEDBuffQ(0)* diffQ(0);
@@ -255,7 +244,7 @@ begin
 					mulQ(ii)  <= xQ_t(ii-1) * diffQ(ii);
 				end loop;
 			end if;
-			if iq_vld_d(8) = '1' then
+			if iq_vld_d(5) = '1' then
 				for ii in 0 to N-1 loop
 					-- Q19.12 + Q19.12 = Q20.12
 					if underflow(ii) = '1' then
@@ -275,7 +264,7 @@ begin
 	process(sys_clk)
 	begin
 		if rising_edge(sys_clk) then
-			if iq_vld_d(9) = '1' then
+			if iq_vld_d(6) = '1' then
 				for ii in 0 to N-1 loop
 					if signed(e_vec(ii)(32 downto 12)) > signed(E_MAX) then
 						e_vec_int(ii) <= E_MAX; -- 4095
@@ -297,40 +286,26 @@ begin
 	process(sys_clk)
 	begin
 		if rising_edge(sys_clk) then
-			if iq_vld_d(10) = '1' then
-				e_add(0) <= resize(e_vec_int(0),14) + resize(e_vec_int(1),14);
-				e_add(1) <= resize(e_vec_int(2),14) + resize(e_vec_int(3),14);
-				e_add(2) <= resize(e_vec_int(4),14) + resize(e_vec_int(5),14);
-				e_add(3) <= resize(e_vec_int(6),14) + resize(e_vec_int(7),14);
-			end if;
-			if iq_vld_d(11) = '1' then
-				e_add1(0) <= resize(e_add(0),15) + resize(e_add(1),15);
-				e_add1(1) <= resize(e_add(2),15) + resize(e_add(3),15);
-			end if;
-			if iq_vld_d(12) = '1' then
-				e_total <= resize(e_add1(0),16) + resize(e_add1(1),16);
+			if iq_vld_d(7) = '1' then
+				e_total <= resize(e_vec_int(0),16) + resize(e_vec_int(1),16) + resize(e_vec_int(2),16) + resize(e_vec_int(3),16) + resize(e_vec_int(4),16) + resize(e_vec_int(5),16) + resize(e_vec_int(6),16) + resize(e_vec_int(7),16);
 			end if;
 		end if;
 	end process;
 
 	e_in <= e_total(e_total'high downto 2);
+
 	--  loop filter, Q15.0 / 4 = Q13.0
 	-- Q13.0 * Q0.16 = Q13.16 (two signed bits) 
 	process(sys_clk)
 	begin
 		if rising_edge(sys_clk) then
-			if iq_vld_d(13) = '1' then
-				vp_1 <= - (resize(e_in, vp'length) sll 11);
-				vp_2 <= - (resize(e_in, vp'length) sll 10);
-				vi_p <= - (resize(e_in, vi_p'length) sll 5);
+			if iq_vld_d(8) = '1' then
+				vp <=  -(resize(e_in, vp'length) sll 11) - (resize(e_in, vp'length) sll 10); 
 			end if;
-			if iq_vld_d(14) = '1' then
-				vp <=  vp_1 + vp_2;
+			if iq_vld_d(9) = '1' then
+				vi_next <= vi - (resize(e_in, vi_p'length) sll 5);
 			end if;
-			if iq_vld_d(15) = '1' then
-				vi_next <= vi + vi_p;
-			end if;
-			if iq_vld_d(16) = '1' then
+			if iq_vld_d(10) = '1' then
 				if vi_next > VI_MAX then
 					vi <= VI_MAX;
 				elsif vi_next < VI_MIN then
@@ -339,11 +314,11 @@ begin
 					vi <= vi_next;
 				end if;
 			end if;
-			if iq_vld_d(17) = '1' then
+			if iq_vld_d(11) = '1' then
 				v_next <= vi + vp;
 			end if;
 			-- Q8.32
-			if iq_vld_d(18) = '1' then
+			if iq_vld_d(12) = '1' then
 				if signed(v_next(31 downto 16)) > 128 then
 					v <= V_MAX;
 				elsif signed(v_next(31 downto 16)) < -128 then
@@ -355,7 +330,7 @@ begin
 		end if;
 	end process;
 
-	loop_out_vld <= iq_vld_d(19);
+	loop_out_vld <= iq_vld_d(13);
 	loop_dout <= std_logic_vector(v) ;
 
 	-- update W, loop gain 2^16
@@ -364,7 +339,7 @@ begin
 	process(sys_clk)
 	begin
 		if rising_edge(sys_clk) then
-			if iq_vld_d(19) = '1' then
+			if iq_vld_d(13) = '1' then
 				W <= HALF_ONE + unsigned(v(31 downto 16));
 			end if;
 		end if;
