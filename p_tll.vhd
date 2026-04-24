@@ -52,7 +52,7 @@ architecture rtl of p_tll is
 	constant ONE_Q1p16 	: signed(17 downto 0):= to_signed(2**16,18);
 
 	signal first_data_in_flag : std_logic:='0';
-	signal iq_vld_d		: std_logic_vector(13 downto 0):=(others=>'0');
+	signal iq_vld_d		: std_logic_vector(10 downto 0):=(others=>'0');
 	signal data_i_reg   : std_logic_array_8(0 to 2*N-1):=(others=>(others=>'0'));
 	signal data_q_reg 	: std_logic_array_8(0 to 2*N-1):=(others=>(others=>'0'));
 	signal CNT  		: unsigned(15 downto 0):= (others=>'0');
@@ -300,37 +300,16 @@ begin
 	begin
 		if rising_edge(sys_clk) then
 			if iq_vld_d(8) = '1' then
+				vi <= vi - (resize(e_in, vi'length) sll 5);
 				vp <=  -(resize(e_in, vp'length) sll 11) - (resize(e_in, vp'length) sll 10); 
 			end if;
 			if iq_vld_d(9) = '1' then
-				vi_next <= vi - (resize(e_in, vi_p'length) sll 5);
-			end if;
-			if iq_vld_d(10) = '1' then
-				if vi_next > VI_MAX then
-					vi <= VI_MAX;
-				elsif vi_next < VI_MIN then
-					vi <= VI_MIN;
-				else
-					vi <= vi_next;
-				end if;
-			end if;
-			if iq_vld_d(11) = '1' then
-				v_next <= vi + vp;
-			end if;
-			-- Q8.32
-			if iq_vld_d(12) = '1' then
-				if signed(v_next(31 downto 16)) > 128 then
-					v <= V_MAX;
-				elsif signed(v_next(31 downto 16)) < -128 then
-					v <= V_MIN;
-				else
-					v <= v_next;
-				end if;
+				v <= vi + vp;
 			end if;
 		end if;
 	end process;
 
-	loop_out_vld <= iq_vld_d(13);
+	loop_out_vld <= iq_vld_d(10);
 	loop_dout <= std_logic_vector(v) ;
 
 	-- update W, loop gain 2^16
@@ -339,7 +318,7 @@ begin
 	process(sys_clk)
 	begin
 		if rising_edge(sys_clk) then
-			if iq_vld_d(13) = '1' then
+			if iq_vld_d(10) = '1' then
 				W <= HALF_ONE + unsigned(v(31 downto 16));
 			end if;
 		end if;

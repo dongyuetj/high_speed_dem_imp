@@ -31,7 +31,7 @@ architecture sim of tb_tb_hs_dem is
     );
 	end component;
 
-    constant DDC_CLK_PERIOD : time := 20 ns;
+    constant DDC_CLK_PERIOD : time := 15 ns;
     constant CLK_PERIOD : time := 10 ns;
 
     signal ddc_clk : std_logic := '0';
