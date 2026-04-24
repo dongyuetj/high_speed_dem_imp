@@ -105,6 +105,10 @@ begin
         rst_n <= '0';
         wait for 10*CLK_PERIOD;
         rst_n <= '1';
+        wait for 80000 ns;
+        rst_n <= '0';
+        wait for 10*CLK_PERIOD;
+        rst_n <= '1';
         wait;
     end process;
 

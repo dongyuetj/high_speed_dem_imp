@@ -113,32 +113,34 @@ begin
     process(sys_clk)
     begin
         if rising_edge(sys_clk) then
-			if first_data_in_flag = '1' then
-				iq_vld_d <= iq_vld_d(iq_vld_d'high-1 downto 0) & iq_vld;
-			else
-				iq_vld_d <= (others=>'0');
-			end if;
 			if rst_n = '0' then
+				CNT <= (others=>'0');
 				first_data_in_flag <= '0';
-			elsif iq_vld = '1' then
-				first_data_in_flag <= '1';
-			end if;
-			if iq_vld = '1' then
-				for ii in 0 to N-1 loop
-					data_i_reg(ii+8) <= data_i(ii);
-					data_q_reg(ii+8) <= data_q(ii);
-					data_i_reg(ii) <= data_i_reg(ii+8);
-					data_q_reg(ii) <= data_q_reg(ii+8);
-				end loop;
-				diff(0) <= CNT ;
-				diff(1) <= CNT - Wx1(15 downto 0);
-				diff(2) <= CNT - Wx2(15 downto 0);
-				diff(3) <= CNT - Wx3(15 downto 0);
-				diff(4) <= CNT - Wx4(15 downto 0);
-				diff(5) <= CNT - Wx5(15 downto 0);
-				diff(6) <= CNT - Wx6(15 downto 0);
-				diff(7) <= CNT - Wx7(15 downto 0);
-				CNT <= CNT - Wx8(15 downto 0);
+				iq_vld_d <= (others=>'0');
+			else
+				if first_data_in_flag = '1' then
+					iq_vld_d <= iq_vld_d(iq_vld_d'high-1 downto 0) & iq_vld;
+				else
+					iq_vld_d <= (others=>'0');
+				end if;
+				if iq_vld = '1' then
+					first_data_in_flag <= '1';
+					for ii in 0 to N-1 loop
+						data_i_reg(ii+8) <= data_i(ii);
+						data_q_reg(ii+8) <= data_q(ii);
+						data_i_reg(ii) <= data_i_reg(ii+8);
+						data_q_reg(ii) <= data_q_reg(ii+8);
+					end loop;
+					diff(0) <= CNT ;
+					diff(1) <= CNT - Wx1(15 downto 0);
+					diff(2) <= CNT - Wx2(15 downto 0);
+					diff(3) <= CNT - Wx3(15 downto 0);
+					diff(4) <= CNT - Wx4(15 downto 0);
+					diff(5) <= CNT - Wx5(15 downto 0);
+					diff(6) <= CNT - Wx6(15 downto 0);
+					diff(7) <= CNT - Wx7(15 downto 0);
+					CNT <= CNT - Wx8(15 downto 0);
+				end if;
 			end if;
         end if;
     end process;
@@ -182,16 +184,20 @@ begin
 				end loop;
 			end if;
 			-- Q8.16 + Q8.16 = Q9.16
-			if iq_vld_d(2) = '1' then
-				for ii in 0 to N-1 loop
-					xI(ii) <= mulI0(ii) + mulI1(ii); -- do not need to extention due to 2 signed bits
-					xQ(ii) <= mulQ0(ii) + mulQ1(ii);
-				end loop;
-				for ii in N-1 downto 0 loop
-					if underflow(ii) = '1' then
-						mu_cur <= mu(ii);
-					end if;
-				end loop;
+			if rst_n = '0' then
+				mu_cur <= to_unsigned(2**15,18);
+			else
+				if iq_vld_d(2) = '1' then
+					for ii in 0 to N-1 loop
+						xI(ii) <= mulI0(ii) + mulI1(ii); -- do not need to extention due to 2 signed bits
+						xQ(ii) <= mulQ0(ii) + mulQ1(ii);
+					end loop;
+					for ii in N-1 downto 0 loop
+						if underflow(ii) = '1' then
+							mu_cur <= mu(ii);
+						end if;
+					end loop;
+				end if;
 			end if;
 		end if;
 	end process;
@@ -299,12 +305,18 @@ begin
 	process(sys_clk)
 	begin
 		if rising_edge(sys_clk) then
-			if iq_vld_d(8) = '1' then
-				vi <= vi - (resize(e_in, vi'length) sll 5);
-				vp <=  -(resize(e_in, vp'length) sll 11) - (resize(e_in, vp'length) sll 10); 
-			end if;
-			if iq_vld_d(9) = '1' then
-				v <= vi + vp;
+			if rst_n = '0' then
+				vi <= (others=>'0');
+				vp <= (others=>'0');
+				v  <= (others=>'0');
+			else
+				if iq_vld_d(8) = '1' then
+					vi <= vi - (resize(e_in, vi'length) sll 5);
+					vp <=  -(resize(e_in, vp'length) sll 11) - (resize(e_in, vp'length) sll 10); 
+				end if;
+				if iq_vld_d(9) = '1' then
+					v <= vi + vp;
+				end if;
 			end if;
 		end if;
 	end process;
@@ -318,7 +330,9 @@ begin
 	process(sys_clk)
 	begin
 		if rising_edge(sys_clk) then
-			if iq_vld_d(10) = '1' then
+			if rst_n = '0' then
+				W <= HALF_ONE ;
+			elsif iq_vld_d(10) = '1' then
 				W <= HALF_ONE + unsigned(v(31 downto 16));
 			end if;
 		end if;
