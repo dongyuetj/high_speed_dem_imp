@@ -11,7 +11,7 @@ library work;
 use work.my_dem_pkg.all;
 
 entity p_pll is
-	generic(N:integer:=8);
+	generic(N:integer:=16);
     Port (
         sys_clk 	 : in  std_logic;
         rst_n   	 : in  std_logic;
@@ -22,74 +22,67 @@ entity p_pll is
 		sync_symb_i  : out std_logic_array_8(0 to N-1):=(others=>(others=>'0'));
 		sync_symb_q  : out std_logic_array_8(0 to N-1):=(others=>(others=>'0'));
 		loop_out_vld : out std_logic:='0';
-		loop_dout	 : out std_logic_vector(17 downto 0):=(others=>'0')
+		loop_dout	 : out std_logic_vector(31 downto 0):=(others=>'0')
     );
 end p_pll;
 
 architecture rtl of p_pll is
 
-	component cordic_pll
-		port (
-				 aclk : in std_logic;
-				 s_axis_phase_tvalid : in std_logic;
-				 s_axis_phase_tdata : in std_logic_vector(15 downto 0);
-				 m_axis_dout_tvalid : out std_logic;
-				 m_axis_dout_tdata : out std_logic_vector(31 downto 0) 
-			 );
-	end component;
-
 	COMPONENT COS_SIN_LUT
 		PORT (
 				 clka : IN STD_LOGIC;
 				 addra : IN STD_LOGIC_VECTOR(9 DOWNTO 0);
-				 douta : OUT STD_LOGIC_VECTOR(31 DOWNTO 0) 
+				 douta : OUT STD_LOGIC_VECTOR(31 DOWNTO 0);
+				 clkb : IN STD_LOGIC;
+				 addrb : IN STD_LOGIC_VECTOR(9 DOWNTO 0);
+				 doutb : OUT STD_LOGIC_VECTOR(31 DOWNTO 0) 
 			 );
 	END COMPONENT;
 
-	-- Q7.16
-	constant ZEROP25				: signed(23 downto 0):=to_signed(2**14,24);
+	COMPONENT ATAN_LUT
+		PORT (
+				 clka : IN STD_LOGIC;
+				 addra : IN STD_LOGIC_VECTOR(9 DOWNTO 0);
+				 douta : OUT STD_LOGIC_VECTOR(15 DOWNTO 0);
+				 clkb : IN STD_LOGIC;
+				 addrb : IN STD_LOGIC_VECTOR(9 DOWNTO 0);
+				 doutb : OUT STD_LOGIC_VECTOR(15 DOWNTO 0) 
+			 );
+	END COMPONENT;
+
 	-- Q0.16
-	constant ZEROP25_Q0p16			: signed(16 downto 0):=to_signed(2**14,17);
-	constant PI_Q8P13				: signed(21 downto 0):=to_signed(25736,22); -- round(pi * 2^13)
-	constant PI_Q9P13				: signed(22 downto 0):=to_signed(25736,23); -- round(pi * 2^13)
-	constant DOUBLE_PI_Q8P13		: signed(21 downto 0):=to_signed(2*25736,22);
-	constant DOUBLE_PI_Q9P13		: signed(22 downto 0):=to_signed(2*25736,23);
-	constant PI_Q2P13				: signed(15 downto 0):=to_signed(25736,16); -- round(pi * 2^13)
+	constant PI_Q3P28				: signed(31 downto 0):=to_signed(843314857,32); -- round(pi * 2^26)
+	constant DOUBLE_PI_Q3P28		: signed(31 downto 0):=to_signed(2*843314857,32);
 
 	signal pll_vld_d 				: std_logic_vector(9 downto 0):=(others=>'0');
-	signal nco_cfg_vld 				: std_logic:='0';
-	signal nco_pinc    				: std_logic_array_16(0 to N-1):=(others=>(others=>'0'));
-	signal nco_out_vld 				: std_logic_vector(0 to N-1):=(others=>'0');
-	signal nco_data    				: std_logic_array_32(0 to N-1):=(others=>(others=>'0'));
 	signal douta    				: std_logic_array_32(0 to N-1):=(others=>(others=>'0'));
 	signal cos,sin					: signed_array_16(0 to N-1):=(others=>(others=>'0'));
-	signal cos_lut,sin_lut					: signed_array_16(0 to N-1):=(others=>(others=>'0'));
+	signal cos_lut,sin_lut			: signed_array_16(0 to N-1):=(others=>(others=>'0'));
 	signal iq_sign					: std_logic_array_2(0 to N-1):=(others=>(others=>'0'));
 	signal P1,P2,P3,P4				: signed_array_24(0 to N-1):=(others=>(others=>'0'));
 	signal phase_detection_real		: signed_array_25(0 to N-1):=(others=>(others=>'0'));
 	signal phase_detection_imag 	: signed_array_25(0 to N-1):=(others=>(others=>'0'));	
-	signal phase_diff 				: signed_array_25(0 to N-1):=(others=>(others=>'0'));
-	signal err		 				: signed(27 downto 0):=(others=>'0');
-	signal err_avg		 			: signed(15 downto 0):=(others=>'0');
-	signal K1xerr		 			: signed(18 downto 0):=(others=>'0');
-	signal int_temp 				: signed(23 downto 0):=(others=>'0');
-	signal int_out	 				: signed(16 downto 0):=(others=>'0');
-	signal loop_out					: signed(17 downto 0):=(others=>'0');
-	signal intx1					: signed(21 downto 0):=(others=>'0');
-	signal intx2					: signed(21 downto 0):=(others=>'0');
-	signal intx4					: signed(21 downto 0):=(others=>'0');
-	signal intx8					: signed(21 downto 0):=(others=>'0');
-	signal intx1_t					: signed(21 downto 0):=(others=>'0');
-	signal intx2_t					: signed(21 downto 0):=(others=>'0');
-	signal intx3_t					: signed(21 downto 0):=(others=>'0');
-	signal intx4_t					: signed(21 downto 0):=(others=>'0');
-	signal intx5_t					: signed(21 downto 0):=(others=>'0');
-	signal intx6_t					: signed(21 downto 0):=(others=>'0');
-	signal intx7_t					: signed(21 downto 0):=(others=>'0');
-	signal intx8_t					: signed(21 downto 0):=(others=>'0');
-	signal phase_int 				: signed(21 downto 0):=(others=>'0');
-	signal phase_int_v	 			: signed_array_23(0 to N-1):=(others=>(others=>'0'));
-	signal phase_int_v_wrap	 		: signed_array_23(0 to N-1):=(others=>(others=>'0'));
+	signal min_num					: signed_array_25(0 to N-1):=(others=>(others=>'0'));
+	signal max_denom 				: signed_array_25(0 to N-1):=(others=>(others=>'0'));	
+	signal min_num_int				: signed_array_11(0 to N-1):=(others=>(others=>'0'));
+	signal max_denom_int 			: signed_array_11(0 to N-1):=(others=>(others=>'0'));	
+	signal shift_left				: std_logic_array_3(0 to N-1):=(others=>(others=>'0'));	
+	signal ratio_int				: signed_array_18(0 to N-1):=(others=>(others=>'0'));
+	signal lower_pos				: std_logic_vector(0 to N-1):=(others=>'0');
+	signal phase_in					: signed_array_16(0 to N-1):=(others=>(others=>'0'));	
+	signal addr_atan				: std_logic_array_10(0 to N-1):=(others=>(others=>'0'));
+	signal dout_atan				: std_logic_array_16(0 to N-1):=(others=>(others=>'0'));
+	signal phase_diff 				: signed_array_18(0 to N-1):=(others=>(others=>'0'));
+	signal err_add0					: signed_array_21(0 to N-1):=(others=>(others=>'0'));
+	signal err_add1					: signed_array_21(0 to N-1):=(others=>(others=>'0'));
+	signal err_total		 		: signed(21 downto 0):=(others=>'0');
+	signal vp		 				: signed(31 downto 0):=(others=>'0');
+	signal vi 						: signed(31 downto 0):=(others=>'0');
+	signal v 						: signed(31 downto 0):=(others=>'0');
+	signal v_vec 					: signed_array_32(0 to N-1):=(others=>(others=>'0'));
+	signal phase_int 				: signed(31 downto 0):=(others=>'0');
+	signal phase_int_v	 			: signed_array_32(0 to N-1):=(others=>(others=>'0'));
+	signal phase_int_v_wrap	 		: signed_array_32(0 to N-1):=(others=>(others=>'0'));
 	signal phase_int_v_wrap_fix	 	: std_logic_array_16(0 to N-1):=(others=>(others=>'0'));
 begin
 
@@ -125,29 +118,37 @@ begin
 		end if;
 	end process;
 	
-	gen_nco: for ii in 0 to N-1 generate
-		nco_pinc(ii) <= phase_int_v_wrap_fix(ii);
-		u_cordic: cordic_pll
-		port map(
-					aclk => sys_clk,
-					s_axis_phase_tvalid => '1',
-					s_axis_phase_tdata => nco_pinc(ii), 
-					m_axis_dout_tvalid => nco_out_vld(ii),
-					m_axis_dout_tdata => nco_data(ii)
-				);
+	gen: for ii in 0 to N-1 generate
+		-- Q2.13
+		phase_int_v_wrap_fix(ii) <= std_logic_vector(phase_int_v_wrap(ii)(31)&phase_int_v_wrap(ii)(29 downto 15));
+		iq_sign(ii) <= std_logic_vector(phase_detection_imag(ii)(24 downto 24)) & std_logic_vector(phase_detection_real(ii)(24 downto 24));
+		cos_lut(ii) <= signed(douta(ii)(15 downto 0));
+		sin_lut(ii) <= signed(douta(ii)(31 downto 16));
+		min_num_int(ii) <= min_num(ii)(24 downto 14);
+		max_denom_int(ii) <= max_denom(ii)(24 downto 14);
+	end generate gen;
 
+	gen_nco: for ii in 0 to N/2-1 generate
 		u_lut: COS_SIN_LUT
 		PORT map(
 					clka => sys_clk,
-					addra => phase_int_v_wrap_fix(ii)(15 downto 6),
-					douta => douta(ii)
+					addra => phase_int_v_wrap_fix(2*ii)(15 downto 6),
+					douta => douta(2*ii),
+					clkb => sys_clk,
+					addrb => phase_int_v_wrap_fix(2*ii+1)(15 downto 6),
+					doutb => douta(2*ii+1)
 				);
 
-		iq_sign(ii) <= std_logic_vector(phase_detection_imag(ii)(24 downto 24)) & std_logic_vector(phase_detection_real(ii)(24 downto 24));
-		cos(ii) <= signed(nco_data(ii)(15 downto 0));
-		sin(ii) <= signed(nco_data(ii)(31 downto 16));
-		cos_lut(ii) <= signed(douta(ii)(15 downto 0));
-		sin_lut(ii) <= signed(douta(ii)(31 downto 16));
+		u_atan: ATAN_LUT
+		PORT map(
+					clka  => sys_clk,
+					addra => addr_atan(2*ii),
+					douta => dout_atan(2*ii),
+					clkb  => sys_clk,
+					addrb => addr_atan(2*ii+1),
+					doutb => dout_atan(2*ii+1)
+				);
+
 	end generate gen_nco;
 
 	process(sys_clk)
@@ -171,16 +172,35 @@ begin
 					elsif phase_detection_imag(ii)(24)='0' then
 						sync_symb_q(ii) <= x"7F";
 					end if;
-					-- Q9.14 +/- Q9.14 = Q10.14
+				end loop;
+			end if;
+		end if;
+	end process;
+
+	-- Q9.14 
+	process(sys_clk)
+	begin
+		if rising_edge(sys_clk) then
+			if pll_vld_d(1) = '1' then
+				for ii in 0 to N-1 loop
+					if abs(phase_detection_real(ii)) > abs(phase_detection_imag(ii)) then
+						min_num(ii) <= abs(phase_detection_imag(ii));
+						max_denom(ii) <= abs(phase_detection_real(ii));
+						lower_pos(ii) <= '1';
+					else
+						min_num(ii) <= abs(phase_detection_real(ii));
+						max_denom(ii) <= abs(phase_detection_imag(ii));
+						lower_pos(ii) <= '0';
+					end if;
 					case iq_sign(ii) is
 						when "00" => --  pi/4
-							phase_diff(ii) <= phase_detection_imag(ii) - phase_detection_real(ii);
+							phase_in(ii) <= PI_1_4_POS;
 						when "10" => -- -pi/4
-							phase_diff(ii) <= phase_detection_imag(ii) + phase_detection_real(ii);
+							phase_in(ii) <= PI_1_4_NEG;
 						when "01" => -- -3*pi/4
-							phase_diff(ii) <= -phase_detection_imag(ii) - phase_detection_real(ii);
+							phase_in(ii) <= PI_3_4_NEG;
 						when "11" => -- 3*pi/4
-							phase_diff(ii) <= -phase_detection_imag(ii) + phase_detection_real(ii);
+							phase_in(ii) <= PI_3_4_POS;
 						when others => null;
 					end case;
 				end loop;
@@ -191,94 +211,212 @@ begin
 	process(sys_clk)
 	begin
 		if rising_edge(sys_clk) then
-			if rst_n = '0' then
-				err <= (others => '0');
-			-- Q10.14 + Q10.14 = Q11.14
-			-- Q11.15 + Q11.15 = Q12.14
-			-- Q12.15 + Q12.15 = Q13.14
-			elsif pll_vld_d(2) = '1' then
-				err <= resize(phase_diff(0),28) + resize(phase_diff(1),28) + resize(phase_diff(2),28) + resize(phase_diff(3),28) + resize(phase_diff(4),28) + resize(phase_diff(5),28) + resize(phase_diff(6),28) + resize(phase_diff(7),28) ;
-			end if;
-		end if;
-	end process;
-
-	-- err Q13.14 / 8 = Q10.17
-	-- err_avg = Q10.5
-	err_avg <= err(27 downto 12);
-
-	-- K1 = (1/2^11+1/2^9); K1*Q10.5 = Q0.16 + Q1.14
-	-- K2 = (1/2^11);	K2*Q10.5 = Q0.16
-	process(sys_clk)
-	begin
-		if rising_edge(sys_clk) then
-			if rst_n = '0' then
-				int_temp <= (others=>'0');
-			else
-				if pll_vld_d(3)  = '1' then
-					-- Q1.16 + Q1.16 = Q2.16
-					K1xerr <= resize(err_avg,19) + (resize(err_avg,19) sll 2);
-					-- Q2.16 -> Q7.16
-					int_temp <= int_temp + resize(err_avg,24);
-				end if; 
-				-- Q7.16 -> Q0.16
-				if pll_vld_d(4)  = '1' then
-					if int_temp > ZEROP25 then
-						int_out <= ZEROP25_Q0p16;
-					elsif int_temp < -ZEROP25 then
-						int_out <= -ZEROP25_Q0p16;
+			if pll_vld_d(2) = '1' then
+				for ii in 0 to N-1 loop
+					if max_denom_int(ii)(7) = '1' then
+						shift_left(ii) <= "000";
+					elsif max_denom_int(ii)(6) = '1' then
+						shift_left(ii) <= "001";
+					elsif max_denom_int(ii)(5) = '1' then
+						shift_left(ii) <= "010";
+					elsif max_denom_int(ii)(4) = '1' then
+						shift_left(ii) <= "011";
+					elsif max_denom_int(ii)(3) = '1' then
+						shift_left(ii) <= "100";
+					elsif max_denom_int(ii)(2) = '1' then
+						shift_left(ii) <= "101";
+					elsif max_denom_int(ii)(1) = '1' then
+						shift_left(ii) <= "110";
+					elsif max_denom_int(ii)(0) = '1' then
+						shift_left(ii) <= "111";
 					else
-						int_out <= int_temp(16 downto 0);
+						shift_left(ii) <= "000";
 					end if;
-				end if;
+				end loop;
 			end if;
 		end if;
 	end process;
 
-	-- Q0.16 * 8 = Q3.13
 	process(sys_clk)
 	begin
 		if rising_edge(sys_clk) then
-			if pll_vld_d(5)  = '1' then
-				-- Q2.16 -> Q2.13
-				-- Q2.13 + Q3.13  = Q4.13
-				loop_out <= resize(K1xerr(18 downto 3),18) + resize(int_out,18);
-				-- Q0.16 -> Q5.16
-				intx1  <= resize(int_out,22);
-				intx2  <= resize(int_out,22) sll 1;
-				intx4  <= resize(int_out,22) sll 2;
-				intx8  <= resize(int_out,22) sll 3;
+			if pll_vld_d(3) = '1' then
+				for ii in 0 to N-1 loop
+					case shift_left(ii) is 
+						when "000" =>
+							ratio_int(ii) <= resize(min_num_int(ii),18);
+						when "001" =>
+							ratio_int(ii) <= resize(min_num_int(ii),18) sll 1;
+						when "010" =>
+							ratio_int(ii) <= resize(min_num_int(ii),18) sll 2;
+						when "011" =>
+							ratio_int(ii) <= resize(min_num_int(ii),18) sll 3;
+						when "100" =>
+							ratio_int(ii) <= resize(min_num_int(ii),18) sll 4;
+						when "101" =>
+							ratio_int(ii) <= resize(min_num_int(ii),18) sll 5;
+						when "110" =>
+							ratio_int(ii) <= resize(min_num_int(ii),18) sll 6;
+						when "111" =>
+							ratio_int(ii) <= resize(min_num_int(ii),18) sll 7;
+						when others => null;
+					end case;
+				end loop;
 			end if;
 		end if;
 	end process;
 
-	loop_out_vld <= pll_vld_d(6);
-	loop_dout <= std_logic_vector(loop_out) ;
+	process(sys_clk)
+	begin
+		if rising_edge(sys_clk) then
+			if pll_vld_d(4) = '1' then
+				for ii in 0 to N-1 loop
+					if ratio_int(ii) > 1023 then
+						addr_atan(ii) <= std_logic_vector(to_unsigned(1023,10));
+					elsif ratio_int(ii) <= 1 then
+						addr_atan(ii) <= std_logic_vector(to_unsigned(1,10));
+					else
+						addr_atan(ii) <= std_logic_vector(ratio_int(ii)(9 downto 0));
+					end if;
+				end loop;
+			end if;
+		end if;
+	end process;
 
-	-- Q8.13
+	--pll_vld_d(5), wait atan rom
+
+	--Q2.13 -> Q4.13
+	process(sys_clk)
+	begin
+		if rising_edge(sys_clk) then
+			if pll_vld_d(6) = '1' then
+				for ii in 0 to N-1 loop
+					case iq_sign(ii) is
+						when "00" => -- 1
+							if lower_pos(ii) = '1' then
+								phase_diff(ii) <= resize(signed(dout_atan(ii)),18) - resize(phase_in(ii),18);
+							else
+								phase_diff(ii) <= resize(PI_1_2_POS,18) - resize(signed(dout_atan(ii)),18) - resize(phase_in(ii),18);
+							end if;
+						when "01" => -- 4
+							if lower_pos(ii) = '1' then
+								phase_diff(ii) <= resize(-signed(dout_atan(ii)),18) - resize(phase_in(ii),18);
+							else
+								phase_diff(ii) <= resize(PI_1_2_NEG,18) + resize(signed(dout_atan(ii)),18) - resize(phase_in(ii),18);
+							end if;
+						when "10" => -- 2
+							if lower_pos(ii) = '1' then
+								phase_diff(ii) <= resize(PI_POS,18) - resize(signed(dout_atan(ii)),18) - resize(phase_in(ii),18);
+							else
+								phase_diff(ii) <= resize(PI_1_2_POS,18) + resize(signed(dout_atan(ii)),18) - resize(phase_in(ii),18);
+							end if;
+						when "11" => -- 3
+							if lower_pos(ii) = '1' then
+								phase_diff(ii) <= resize(PI_NEG,18) + resize(signed(dout_atan(ii)),18) - resize(phase_in(ii),18);
+							else
+								phase_diff(ii) <= resize(PI_1_2_NEG,18) - resize(signed(dout_atan(ii)),18) - resize(phase_in(ii),18);
+							end if;
+						when others => null;
+					end case;
+				end loop;
+			end if;
+		end if;
+	end process;
+
+	--Q4.13 -> Q7.13
+	process(sys_clk)
+	begin
+		if rising_edge(sys_clk) then
+			if rst_n = '0' then
+				err_add0 <= (others => '0');
+				err_add1 <= (others => '0');
+			elsif pll_vld_d(7) = '1' then
+				err_add0 <= resize(phase_diff(0),21) + resize(phase_diff(1),21) + resize(phase_diff(2),21) + resize(phase_diff(3),21) + resize(phase_diff(4),21) + resize(phase_diff(5),21) + resize(phase_diff(6),21) + resize(phase_diff(7),21) ;
+				err_add1 <= resize(phase_diff(8),21) + resize(phase_diff(9),21) + resize(phase_diff(10),21) + resize(phase_diff(11),21) + resize(phase_diff(12),21) + resize(phase_diff(13),21) + resize(phase_diff(14),21) + resize(phase_diff(15),21) ;
+			end if;
+		end if;
+	end process;
+
+	-- Q7.13 -> 8.13
+	process(sys_clk)
+	begin
+		if rising_edge(sys_clk) then
+			if rst_n = '0' then
+				err_total <= (others=>'0');
+			elsif pll_vld_d(8) = '1' then
+				err_total <= err_add0 + err_add1;
+			end if;
+		end if;
+	end process;
+
+	-- Q8.13 -> 4.17
+	--err_avg <= err_total(21 downto 6);
+	-- K1 = (1/2^11+1/2^9); K1*Q4.17 = Q0.28 + Q0.26
+	-- K2 = (1/2^11);	K2*Q4.11 = Q0.28
+	process(sys_clk)
+	begin
+		if rising_edge(sys_clk) then
+			if rst_n = '0' then
+				vi <= (others=>'0');
+				vp <= (others=>'0');
+			else
+				if pll_vld_d(9)  = '1' then
+					-- Q0.28 + Q0.28 = Q1.28 (2 redundant bits)
+					vp <= resize(err_total,32) + (resize(err_total,32) sll 2);
+					-- Q1.28 + Q1.28 = Q3.28 (1 redundant bits)
+					vi <= vi + resize(err_total,32);
+				end if; 
+			end if;
+		end if;
+	end process;
+
+	process(sys_clk)
+	begin
+		if rising_edge(sys_clk) then
+			if rst_n = '0' then
+				v <= (others=>'0');
+			elsif pll_vld_d(10)  = '1' then
+				-- Q3.28 
+				v <= vp + vi;
+			end if;
+		end if;
+	end process;
+
+	loop_out_vld <= pll_vld_d(11);
+	loop_dout <= std_logic_vector(v) ;
+
+	-- Q3.28
 	process(sys_clk)
 	begin
 		if rising_edge(sys_clk) then
 			if rst_n = '0' then
 				phase_int <= (others=>'0');
+				v_vec <= (others=>(others=>'0'));
 			else
-				if pll_vld_d(6)  = '1' then
-					-- Q4.13 + Q4.13 = Q5.13 -> Q8.13
-					phase_int <= phase_int + resize(loop_out,22);
-					-- Q5.16
-					intx1_t   <= intx1;
-					intx2_t   <= intx2;
-					intx3_t   <= intx1 + intx2; 
-					intx4_t   <= intx4;
-					intx5_t   <= intx1 + intx4;
-					intx6_t   <= intx2 + intx4;
-					intx7_t   <= intx8 - intx1;
-					intx8_t   <= intx8;
-				end if;
-				if pll_vld_d(7) = '1' then
-					if phase_int > PI_Q8P13 then
-						phase_int <= phase_int - DOUBLE_PI_Q8P13;
-					elsif phase_int < - PI_Q8P13 then
-						phase_int <= phase_int + DOUBLE_PI_Q8P13;
+				if pll_vld_d(11)  = '1' then
+					phase_int <= phase_int + (v sll 4);
+					v_vec(0) <= v;
+					v_vec(1) <= (v sll 1);
+					v_vec(2) <= (v sll 1) + v;
+					v_vec(3) <= (v sll 2);
+					v_vec(4) <= (v sll 2) + v;
+					v_vec(5) <= (v sll 2) + (v sll 1);
+					v_vec(6) <= (v sll 3) - v;
+					v_vec(7) <= (v sll 3);
+					v_vec(8) <= (v sll 3) + v;
+					v_vec(9) <= (v sll 3) + (v sll 1);
+					v_vec(10) <= (v sll 3) + v + (v sll 1);
+					v_vec(11) <= (v sll 3) + (v sll 2);
+					v_vec(12) <= (v sll 3) + (v sll 2) + v;
+					v_vec(13) <= (v sll 4) - (v sll 1) ;
+					v_vec(14) <= (v sll 4) - v ;
+					v_vec(15) <= (v sll 4);
+				-- to void overlfow
+				elsif pll_vld_d(12) = '1' then
+					if phase_int > PI_Q3P28 then
+						phase_int <= phase_int - DOUBLE_PI_Q3P28;
+					elsif phase_int < - PI_Q3P28 then
+						phase_int <= phase_int + DOUBLE_PI_Q3P28;
 					else
 						phase_int <= phase_int;
 					end if;
@@ -290,56 +428,34 @@ begin
 	process(sys_clk)
 	begin
 		if rising_edge(sys_clk) then
-			if pll_vld_d(7) = '1' then
-				-- Q8.13 + Q5.13 = Q9.13
-				phase_int_v(0) <= resize(phase_int,23) + resize(intx1_t(21 downto 3),23); 
-				phase_int_v(1) <= resize(phase_int,23) + resize(intx2_t(21 downto 3),23); 
-				phase_int_v(2) <= resize(phase_int,23) + resize(intx3_t(21 downto 3),23); 
-				phase_int_v(3) <= resize(phase_int,23) + resize(intx4_t(21 downto 3),23); 
-				phase_int_v(4) <= resize(phase_int,23) + resize(intx5_t(21 downto 3),23); 
-				phase_int_v(5) <= resize(phase_int,23) + resize(intx6_t(21 downto 3),23); 
-				phase_int_v(6) <= resize(phase_int,23) + resize(intx7_t(21 downto 3),23); 
-				phase_int_v(7) <= resize(phase_int,23) + resize(intx8_t(21 downto 3),23); 
+			if rst_n = '0' then
+				phase_int_v <= (others=>(others=>'0'));
+			elsif pll_vld_d(12) = '1' then
+				for ii in 0 to N-1 loop
+					phase_int_v(ii) <= phase_int + v_vec(ii) ;
+				end loop;
 			end if;
 		end if;
 	end process;
 
 	-- unwrap
-	-- Q9.13
+	-- Q3.28 
 	process(sys_clk)
 	begin
 		if rising_edge(sys_clk) then
-			for ii in 0 to N-1 loop
-				if pll_vld_d(8) = '1' then
-					if phase_int_v(ii) > PI_Q9P13 then
-						phase_int_v_wrap(ii) <= phase_int_v(ii) - DOUBLE_PI_Q9P13;
-					elsif phase_int_v(ii) < - PI_Q9P13 then
-						phase_int_v_wrap(ii) <= phase_int_v(ii) + DOUBLE_PI_Q9P13;
+			if rst_n = '0' then
+				phase_int_v_wrap <=	(others=>(others=>'0'));
+			elsif pll_vld_d(13) = '1' then
+				for ii in 0 to N-1 loop
+					if phase_int_v(ii) > PI_Q3P28 then
+						phase_int_v_wrap(ii) <= phase_int_v(ii) - DOUBLE_PI_Q3P28;
+					elsif phase_int_v(ii) < - PI_Q3P28 then
+						phase_int_v_wrap(ii) <= phase_int_v(ii) + DOUBLE_PI_Q3P28;
 					else
 						phase_int_v_wrap(ii) <= phase_int_v(ii);
 					end if;
-				end if;
-			end loop;
-		end if;
-	end process;
-
-	-- truncation
-	-- Q2.13 (16 bits)
-	process(sys_clk)
-	begin
-		if rising_edge(sys_clk) then
-			nco_cfg_vld	<= pll_vld_d(9);
-			for ii in 0 to N-1 loop
-				if pll_vld_d(9) = '1' then
-					if phase_int_v_wrap(ii) > PI_Q9P13 then
-						phase_int_v_wrap_fix(ii) <= std_logic_vector(PI_Q2P13);
-					elsif phase_int_v_wrap(ii) < - PI_Q9P13 then
-						phase_int_v_wrap_fix(ii) <= std_logic_vector(-PI_Q2P13);
-					else
-						phase_int_v_wrap_fix(ii) <= std_logic_vector(phase_int_v_wrap(ii)(15 downto 0));
-					end if;
-				end if;
-			end loop;
+				end loop;
+			end if;
 		end if;
 	end process;
 

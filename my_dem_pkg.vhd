@@ -12,6 +12,7 @@ use IEEE.NUMERIC_STD.ALL;
 package my_dem_pkg is
     type std_logic_array_1 is array (natural range<>) of std_logic_vector(0 downto 0);
     type std_logic_array_2 is array (natural range<>) of std_logic_vector(1 downto 0);
+    type std_logic_array_3 is array (natural range<>) of std_logic_vector(2 downto 0);
     type std_logic_array_4 is array (natural range<>) of std_logic_vector(3 downto 0);
     type std_logic_array_5 is array (natural range<>) of std_logic_vector(4 downto 0);
     type std_logic_array_6 is array (natural range<>) of std_logic_vector(5 downto 0);
@@ -60,6 +61,9 @@ package my_dem_pkg is
 	constant PI_1_2_POS 					: signed(15 downto 0):=to_signed(12868,16);
 	constant PI_1_2_NEG 					: signed(15 downto 0):=to_signed(-12868,16);
 
+    type signed_array_10 is array (natural range<>) of signed(9 downto 0);
+    type signed_array_11 is array (natural range<>) of signed(10 downto 0);
+    type signed_array_12 is array (natural range<>) of signed(11 downto 0);
     type signed_array_13 is array (natural range<>) of signed(12 downto 0);
     type signed_array_14 is array (natural range<>) of signed(13 downto 0);
     type signed_array_15 is array (natural range<>) of signed(14 downto 0);
@@ -68,6 +72,7 @@ package my_dem_pkg is
     type signed_array_18 is array (natural range<>) of signed(17 downto 0);
     type signed_array_19 is array (natural range<>) of signed(18 downto 0);
     type signed_array_20 is array (natural range<>) of signed(19 downto 0);
+    type signed_array_21 is array (natural range<>) of signed(20 downto 0);
     type signed_array_23 is array (natural range<>) of signed(22 downto 0);
     type signed_array_24 is array (natural range<>) of signed(23 downto 0);
     type signed_array_25 is array (natural range<>) of signed(24 downto 0);
