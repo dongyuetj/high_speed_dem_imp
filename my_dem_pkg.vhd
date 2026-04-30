@@ -84,6 +84,7 @@ package my_dem_pkg is
     type signed_array_36 is array (natural range<>) of signed(35 downto 0);
     type signed_array_39 is array (natural range<>) of signed(38 downto 0);
 
+    type unsigned_array_11 is array (natural range<>) of unsigned(10 downto 0);
     type unsigned_array_16 is array (natural range<>) of unsigned(15 downto 0);
     type unsigned_array_17 is array (natural range<>) of unsigned(16 downto 0);
     type unsigned_array_18 is array (natural range<>) of unsigned(17 downto 0);

@@ -54,11 +54,11 @@ architecture rtl of p_pll is
 	constant PI_Q3P28				: signed(31 downto 0):=to_signed(843314857,32); -- round(pi * 2^26)
 	constant DOUBLE_PI_Q3P28		: signed(31 downto 0):=to_signed(2*843314857,32);
 
-	signal pll_vld_d 				: std_logic_vector(9 downto 0):=(others=>'0');
+	signal pll_vld_d 				: std_logic_vector(13 downto 0):=(others=>'0');
 	signal douta    				: std_logic_array_32(0 to N-1):=(others=>(others=>'0'));
-	signal cos,sin					: signed_array_16(0 to N-1):=(others=>(others=>'0'));
 	signal cos_lut,sin_lut			: signed_array_16(0 to N-1):=(others=>(others=>'0'));
 	signal iq_sign					: std_logic_array_2(0 to N-1):=(others=>(others=>'0'));
+	signal iq_sign_reg				: std_logic_array_2(0 to N-1):=(others=>(others=>'0'));
 	signal P1,P2,P3,P4				: signed_array_24(0 to N-1):=(others=>(others=>'0'));
 	signal phase_detection_real		: signed_array_25(0 to N-1):=(others=>(others=>'0'));
 	signal phase_detection_imag 	: signed_array_25(0 to N-1):=(others=>(others=>'0'));	
@@ -73,8 +73,8 @@ architecture rtl of p_pll is
 	signal addr_atan				: std_logic_array_10(0 to N-1):=(others=>(others=>'0'));
 	signal dout_atan				: std_logic_array_16(0 to N-1):=(others=>(others=>'0'));
 	signal phase_diff 				: signed_array_18(0 to N-1):=(others=>(others=>'0'));
-	signal err_add0					: signed_array_21(0 to N-1):=(others=>(others=>'0'));
-	signal err_add1					: signed_array_21(0 to N-1):=(others=>(others=>'0'));
+	signal err_add0					: signed(20 downto 0):=(others=>'0');
+	signal err_add1					: signed(20 downto 0):=(others=>'0');
 	signal err_total		 		: signed(21 downto 0):=(others=>'0');
 	signal vp		 				: signed(31 downto 0):=(others=>'0');
 	signal vi 						: signed(31 downto 0):=(others=>'0');
@@ -192,6 +192,7 @@ begin
 						max_denom(ii) <= abs(phase_detection_imag(ii));
 						lower_pos(ii) <= '0';
 					end if;
+					iq_sign_reg(ii) <= iq_sign(ii);
 					case iq_sign(ii) is
 						when "00" => --  pi/4
 							phase_in(ii) <= PI_1_4_POS;
@@ -291,7 +292,7 @@ begin
 		if rising_edge(sys_clk) then
 			if pll_vld_d(6) = '1' then
 				for ii in 0 to N-1 loop
-					case iq_sign(ii) is
+					case iq_sign_reg(ii) is
 						when "00" => -- 1
 							if lower_pos(ii) = '1' then
 								phase_diff(ii) <= resize(signed(dout_atan(ii)),18) - resize(phase_in(ii),18);
@@ -323,34 +324,28 @@ begin
 		end if;
 	end process;
 
-	--Q4.13 -> Q7.13
 	process(sys_clk)
 	begin
 		if rising_edge(sys_clk) then
 			if rst_n = '0' then
 				err_add0 <= (others => '0');
 				err_add1 <= (others => '0');
-			elsif pll_vld_d(7) = '1' then
-				err_add0 <= resize(phase_diff(0),21) + resize(phase_diff(1),21) + resize(phase_diff(2),21) + resize(phase_diff(3),21) + resize(phase_diff(4),21) + resize(phase_diff(5),21) + resize(phase_diff(6),21) + resize(phase_diff(7),21) ;
-				err_add1 <= resize(phase_diff(8),21) + resize(phase_diff(9),21) + resize(phase_diff(10),21) + resize(phase_diff(11),21) + resize(phase_diff(12),21) + resize(phase_diff(13),21) + resize(phase_diff(14),21) + resize(phase_diff(15),21) ;
-			end if;
-		end if;
-	end process;
-
-	-- Q7.13 -> 8.13
-	process(sys_clk)
-	begin
-		if rising_edge(sys_clk) then
-			if rst_n = '0' then
 				err_total <= (others=>'0');
-			elsif pll_vld_d(8) = '1' then
-				err_total <= err_add0 + err_add1;
+			else
+				--Q4.13 -> Q7.13
+				if pll_vld_d(7) = '1' then
+					err_add0 <= resize(phase_diff(0),21) + resize(phase_diff(1),21) + resize(phase_diff(2),21) + resize(phase_diff(3),21) + resize(phase_diff(4),21) + resize(phase_diff(5),21) + resize(phase_diff(6),21) + resize(phase_diff(7),21) ;
+					err_add1 <= resize(phase_diff(8),21) + resize(phase_diff(9),21) + resize(phase_diff(10),21) + resize(phase_diff(11),21) + resize(phase_diff(12),21) + resize(phase_diff(13),21) + resize(phase_diff(14),21) + resize(phase_diff(15),21) ;
+				end if;
+				-- Q7.13 -> 8.13
+				if pll_vld_d(8) = '1' then
+					err_total <= resize(err_add0,22) + resize(err_add1,22);
+				end if;
 			end if;
 		end if;
 	end process;
 
-	-- Q8.13 -> 4.17
-	--err_avg <= err_total(21 downto 6);
+	-- Q8.13 /16 -> 4.17
 	-- K1 = (1/2^11+1/2^9); K1*Q4.17 = Q0.28 + Q0.26
 	-- K2 = (1/2^11);	K2*Q4.11 = Q0.28
 	process(sys_clk)
@@ -361,9 +356,9 @@ begin
 				vp <= (others=>'0');
 			else
 				if pll_vld_d(9)  = '1' then
-					-- Q0.28 + Q0.28 = Q1.28 (2 redundant bits)
+					-- Q0.28 + Q0.28 = Q1.28 , 32 bit means Q3.28, so it means there are two redundant integal bits.
 					vp <= resize(err_total,32) + (resize(err_total,32) sll 2);
-					-- Q1.28 + Q1.28 = Q3.28 (1 redundant bits)
+					-- Q1.28 + Q1.28 = Q3.28 (1 redundant integal bit)
 					vi <= vi + resize(err_total,32);
 				end if; 
 			end if;
@@ -394,7 +389,7 @@ begin
 				v_vec <= (others=>(others=>'0'));
 			else
 				if pll_vld_d(11)  = '1' then
-					phase_int <= phase_int + (v sll 4);
+					phase_int <= phase_int + (v sll 4); -- 16*v
 					v_vec(0) <= v;
 					v_vec(1) <= (v sll 1);
 					v_vec(2) <= (v sll 1) + v;
@@ -411,8 +406,9 @@ begin
 					v_vec(13) <= (v sll 4) - (v sll 1) ;
 					v_vec(14) <= (v sll 4) - v ;
 					v_vec(15) <= (v sll 4);
+				end if;
 				-- to void overlfow
-				elsif pll_vld_d(12) = '1' then
+				if pll_vld_d(12) = '1' then
 					if phase_int > PI_Q3P28 then
 						phase_int <= phase_int - DOUBLE_PI_Q3P28;
 					elsif phase_int < - PI_Q3P28 then
@@ -420,20 +416,16 @@ begin
 					else
 						phase_int <= phase_int;
 					end if;
+					for ii in 0 to N-1 loop
+						if phase_int > PI_Q3P28 then
+							phase_int_v(ii) <= phase_int - DOUBLE_PI_Q3P28 + v_vec(ii) ;
+						elsif phase_int < - PI_Q3P28 then
+							phase_int_v(ii) <= phase_int + DOUBLE_PI_Q3P28 + v_vec(ii) ;
+						else
+							phase_int_v(ii) <= phase_int + v_vec(ii) ;
+						end if;
+					end loop;
 				end if;
-			end if;
-		end if;
-	end process;
-
-	process(sys_clk)
-	begin
-		if rising_edge(sys_clk) then
-			if rst_n = '0' then
-				phase_int_v <= (others=>(others=>'0'));
-			elsif pll_vld_d(12) = '1' then
-				for ii in 0 to N-1 loop
-					phase_int_v(ii) <= phase_int + v_vec(ii) ;
-				end loop;
 			end if;
 		end if;
 	end process;
@@ -458,5 +450,7 @@ begin
 			end if;
 		end if;
 	end process;
+	-- pll_vld_d(14) addr vld
+	-- pll_vld_d(15) cos, sin vld, sync with symb_en
 
 end rtl;
