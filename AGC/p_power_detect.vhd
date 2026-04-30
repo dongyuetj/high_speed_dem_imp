@@ -45,7 +45,7 @@ architecture arch of p_power_detect is
 	--constant POWER_REF 			: std_logic_vector(31 downto 0):=x"0D693A40"; -- 15000^2
 	constant POWER_REF 				: std_logic_vector(31 downto 0):=x"003D0900"; -- 2000^2
 	--constant START_LEVEL			: std_logic_vector(31 downto 0):=x"00002710";
-	signal wave_in_valid_d 			: std_logic_vector(5+moving_window_len downto 0):=(others=>'0');
+	signal wave_in_valid_d 			: std_logic_vector(6+moving_window_len downto 0):=(others=>'0');
 	signal wave_i_sqr				: std_logic_array_32(0 to N-1):=(others=>(others=>'0'));
 	signal wave_q_sqr				: std_logic_array_32(0 to N-1):=(others=>(others=>'0'));
 	signal wave_i_sqr_avg			: std_logic_vector(31 downto 0):=(others=>'0');
@@ -54,8 +54,10 @@ architecture arch of p_power_detect is
 	signal wave_q_sum0				: std_logic_array_33(0 to N/2-1):=(others=>(others=>'0'));
 	signal wave_i_sum1				: std_logic_array_34(0 to N/4-1):=(others=>(others=>'0'));
 	signal wave_q_sum1				: std_logic_array_34(0 to N/4-1):=(others=>(others=>'0'));
-	signal wave_i_sum				: std_logic_vector(34 downto 0):=(others=>'0');
-	signal wave_q_sum				: std_logic_vector(34 downto 0):=(others=>'0');
+	signal wave_i_sum2				: std_logic_array_35(0 to N/4-1):=(others=>(others=>'0'));
+	signal wave_q_sum2				: std_logic_array_35(0 to N/4-1):=(others=>(others=>'0'));
+	signal wave_i_sum				: std_logic_vector(35 downto 0):=(others=>'0');
+	signal wave_q_sum				: std_logic_vector(35 downto 0):=(others=>'0');
 	signal delay_len				: std_logic_vector(4 downto 0):=(others=>'0');
 	signal power_in					: std_logic_vector(32 downto 0):=(others=>'0');
 	signal power_in_t				: std_logic_vector(31 downto 0):=(others=>'0');
@@ -94,12 +96,18 @@ begin
 				end loop;
 			end if;
 			if wave_in_valid_d(2) = '1' then
-				wave_i_sum <= ((wave_i_sum1(0)(33) & wave_i_sum1(0))) + ((wave_i_sum1(1)(33) & wave_i_sum1(1)));
-				wave_q_sum <= ((wave_q_sum1(0)(33) & wave_q_sum1(0))) + ((wave_q_sum1(1)(33) & wave_q_sum1(1)));
+				for ii in 0 to N/8-1 loop
+					wave_i_sum2(ii) <= (wave_i_sum1(2*ii)(33) & wave_i_sum1(2*ii)) + (wave_i_sum1(2*ii+1)(33) & wave_i_sum1(2*ii+1));
+					wave_q_sum2(ii) <= (wave_q_sum1(2*ii)(33) & wave_q_sum1(2*ii)) + (wave_q_sum1(2*ii+1)(33) & wave_q_sum1(2*ii+1));
+				end loop;
 			end if;
 			if wave_in_valid_d(3) = '1' then
-				wave_i_sqr_avg <= wave_i_sum(34 downto 3);
-				wave_q_sqr_avg <= wave_q_sum(34 downto 3);
+				wave_i_sum <= ((wave_i_sum2(0)(34) & wave_i_sum2(0))) + ((wave_i_sum2(1)(34) & wave_i_sum2(1)));
+				wave_q_sum <= ((wave_q_sum2(0)(34) & wave_q_sum2(0))) + ((wave_q_sum2(1)(34) & wave_q_sum2(1)));
+			end if;
+			if wave_in_valid_d(4) = '1' then
+				wave_i_sqr_avg <= wave_i_sum(35 downto 4);
+				wave_q_sqr_avg <= wave_q_sum(35 downto 4);
 			end if;
 		end if;
 	end process;
@@ -108,7 +116,7 @@ begin
 	process(sys_clk)
 	begin
 		if rising_edge(sys_clk) then
-			if wave_in_valid_d(4) = '1' then
+			if wave_in_valid_d(5) = '1' then
 				power_in <= (wave_i_sqr_avg(wave_i_sqr_avg'high)&wave_i_sqr_avg) + (wave_q_sqr_avg(wave_q_sqr_avg'high)&wave_q_sqr_avg);
 				if power_in(32 downto 31) = "00" or power_in(32 downto 31) = "11" then
 					power_in_t	<= power_in(31 downto 0);
@@ -129,7 +137,7 @@ begin
 				 A 		=> delay_len ,
 				 D 		=> power_in_t,
 				 CLK 	=> sys_clk,
-				 CE 	=> wave_in_valid_d(5),
+				 CE 	=> wave_in_valid_d(6),
 				 Q 		=> power_in_previous
 			 );
 
@@ -137,7 +145,7 @@ begin
 	process(sys_clk)
 	begin
 		if rising_edge(sys_clk) then
-			if wave_in_valid_d(5+moving_window_len) = '1' then
+			if wave_in_valid_d(6+moving_window_len) = '1' then
 				acc_sum <= acc_sum + power_in_d - power_in_previous;
 				power_calc_valid <= '1';
 			else

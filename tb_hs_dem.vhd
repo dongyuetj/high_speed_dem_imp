@@ -16,9 +16,8 @@ end tb_tb_hs_dem;
 architecture sim of tb_tb_hs_dem is
 
 	component hs_dem
-	generic( N : integer := 8);
+	generic( N : integer := 16);
     Port (
-        ddc_clk  : in  std_logic;
         sys_clk  : in  std_logic;
         rst_n    : in  std_logic;
 		data_vld : in std_logic;
@@ -31,7 +30,7 @@ architecture sim of tb_tb_hs_dem is
     );
 	end component;
 
-    constant DDC_CLK_PERIOD : time := 15 ns;
+    constant DDC_CLK_PERIOD : time := 10 ns;
     constant CLK_PERIOD : time := 10 ns;
 
     signal ddc_clk : std_logic := '0';
@@ -50,8 +49,8 @@ architecture sim of tb_tb_hs_dem is
     -- File I/O
   --  file rec_r_i0 : text open read_mode  is "D:\projects\46_high_speed_dem\sim\rd_data_i.txt";
   --  file rec_r_q0 : text open read_mode  is "D:\projects\46_high_speed_dem\sim\rd_data_q.txt";
-    file rec_r_i0 : text open read_mode  is "D:\projects\46_high_speed_dem\sim\data_i0.txt";
-    file rec_r_q0 : text open read_mode  is "D:\projects\46_high_speed_dem\sim\data_q0.txt";
+    file rec_r_i0 : text open read_mode  is "D:\projects\46_high_speed_dem\sim\ddc_i0.txt";
+    file rec_r_q0 : text open read_mode  is "D:\projects\46_high_speed_dem\sim\ddc_q0.txt";
     file rec_r_i1 : text open read_mode  is "D:\projects\46_high_speed_dem\sim\ddc_i1.txt";
     file rec_r_q1 : text open read_mode  is "D:\projects\46_high_speed_dem\sim\ddc_q1.txt";
     file rec_w_i : text open write_mode is "D:\projects\46_high_speed_dem\sim\dem_byte.txt";
@@ -62,8 +61,8 @@ begin
     -- DUT Instantiation
     ----------------------------------------------------------------
 	uut : entity work.hs_dem
+	generic map( N => 16)
 	port map (
-				 ddc_clk  => ddc_clk,
 				 sys_clk  => sys_clk,
 				 rst_n    => rst_n,
 				 data_vld => '1',
@@ -105,7 +104,7 @@ begin
         rst_n <= '0';
         wait for 10*CLK_PERIOD;
         rst_n <= '1';
-        wait for 80000 ns;
+        wait for 300 us;
         rst_n <= '0';
         wait for 10*CLK_PERIOD;
         rst_n <= '1';

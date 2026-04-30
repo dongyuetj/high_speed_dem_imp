@@ -207,7 +207,7 @@ architecture arch of p_agc is
 	signal g_data 				: std_logic_vector(31 downto 0):=(others=>'0');
 	signal exp_gain_valid		: std_logic:='0';
 	signal exp_gain      		: std_logic_vector(31 downto 0):=(others=>'0');
-	signal exp_gain_cmp      		: std_logic_vector(31 downto 0):=(others=>'0');
+	signal exp_gain_cmp      	: std_logic_vector(31 downto 0):=(others=>'0');
 	signal wave_abs_valid		: std_logic:='0';
 	signal wave_abs_i			: std_logic_vector(15 downto 0):=(others=>'0');
 	signal wave_abs_q			: std_logic_vector(15 downto 0):=(others=>'0');
@@ -227,7 +227,7 @@ begin
 	exp_gain_o <= exp_gain_cmp;
 
 	u_pwr_det: p_power_detect
-	generic map(moving_window_len => 4, N => 8)
+	generic map(moving_window_len => 4, N => N)
 	port map(
 				sys_clk			=> 	sys_clk			,
 				aresetn 		=>  aresetn			,

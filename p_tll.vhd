@@ -11,7 +11,7 @@ library work;
 use work.my_dem_pkg.all;
 
 entity p_tll is
-	generic(N:integer:=8);
+	generic(N:integer:=16);
     Port (
         sys_clk : in  std_logic;
         rst_n   : in  std_logic;
@@ -52,7 +52,7 @@ architecture rtl of p_tll is
 	constant ONE_Q1p16 	: signed(17 downto 0):= to_signed(2**16,18);
 
 	signal first_data_in_flag : std_logic:='0';
-	signal iq_vld_d		: std_logic_vector(11 downto 0):=(others=>'0');
+	signal iq_vld_d		: std_logic_vector(18 downto 0):=(others=>'0');
 	signal data_i_reg   : std_logic_array_8(0 to 2*N-1):=(others=>(others=>'0'));
 	signal data_q_reg 	: std_logic_array_8(0 to 2*N-1):=(others=>(others=>'0'));
 	signal CNT  		: unsigned(15 downto 0):= (others=>'0');
@@ -216,7 +216,7 @@ begin
 	begin
 		if rising_edge(sys_clk) then
 			symb_en <= (others => '0');
-			for i in 0 to 7 loop
+			for i in 0 to N-1 loop
 				if iq_vld_d(3+i) = '1' then
 					if underflow(i) = '1' then
 						symb_en(i) <= '1';
