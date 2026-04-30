@@ -199,8 +199,12 @@ begin
 				end if;
 				if underflow(N-1) = '1' then
 					mu_cur <= mu_ext(N-1);
-				else
+				elsif underflow(N-2) = '1' then
 					mu_cur <= mu_ext(N-2);
+				elsif underflow(N-3) = '1' then
+					mu_cur <= mu_ext(N-3);
+				elsif underflow(N-4) = '1' then
+					mu_cur <= mu_ext(N-4);
 				end if;
 			end if;
 		end if;
