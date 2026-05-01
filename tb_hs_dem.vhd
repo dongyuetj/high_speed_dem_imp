@@ -33,7 +33,6 @@ architecture sim of tb_tb_hs_dem is
     constant DDC_CLK_PERIOD : time := 10 ns;
     constant CLK_PERIOD : time := 10 ns;
 
-    signal ddc_clk : std_logic := '0';
     signal sys_clk : std_logic := '0';
     signal rst_n   : std_logic := '0';
 
@@ -81,44 +80,35 @@ begin
     begin
         while true loop
             sys_clk <= '0';
-            wait for CLK_PERIOD;
+            wait for CLK_PERIOD/2;
             sys_clk <= '1';
-            wait for CLK_PERIOD;
+            wait for CLK_PERIOD/2;
         end loop;
     end process;
 
-    ddc_clock_gen : process
-    begin
-        while true loop
-            ddc_clk <= '0';
-            wait for DDC_CLK_PERIOD;
-            ddc_clk <= '1';
-            wait for DDC_CLK_PERIOD;
-        end loop;
-    end process;
     ----------------------------------------------------------------
     -- Reset Generator
     ----------------------------------------------------------------
     rst_gen : process
     begin
         rst_n <= '0';
-        wait for 10*CLK_PERIOD;
+        wait for 5*CLK_PERIOD;
         rst_n <= '1';
-        wait for 300 us;
-        rst_n <= '0';
-        wait for 10*CLK_PERIOD;
-        rst_n <= '1';
+       -- wait for 300 us;
+       -- rst_n <= '0';
+       -- wait for 10*CLK_PERIOD;
+       -- rst_n <= '1';
         wait;
     end process;
 
     ----------------------------------------------------------------
     -- Read I Channel
     ----------------------------------------------------------------
-    process(ddc_clk)
+    process(sys_clk)
         variable l : line;
         variable data_temp : integer;
     begin
-        if rising_edge(ddc_clk) then
+        if rising_edge(sys_clk) then
             if not endfile(rec_r_i0) then
                 readline(rec_r_i0, l);
                 read(l, data_temp);
@@ -130,11 +120,11 @@ begin
     ----------------------------------------------------------------
     -- Read Q Channel
     ----------------------------------------------------------------
-    process(ddc_clk)
+    process(sys_clk)
         variable l : line;
         variable data_temp : integer;
     begin
-        if rising_edge(ddc_clk) then
+        if rising_edge(sys_clk) then
             if not endfile(rec_r_q0) then
                 readline(rec_r_q0, l);
                 read(l, data_temp);
@@ -146,11 +136,11 @@ begin
     ----------------------------------------------------------------
     -- Read I Channel
     ----------------------------------------------------------------
-    process(ddc_clk)
+    process(sys_clk)
         variable l : line;
         variable data_temp : integer;
     begin
-        if rising_edge(ddc_clk) then
+        if rising_edge(sys_clk) then
             if not endfile(rec_r_i1) then
                 readline(rec_r_i1, l);
                 read(l, data_temp);
@@ -162,11 +152,11 @@ begin
     ----------------------------------------------------------------
     -- Read Q Channel
     ----------------------------------------------------------------
-    process(ddc_clk)
+    process(sys_clk)
         variable l : line;
         variable data_temp : integer;
     begin
-        if rising_edge(ddc_clk) then
+        if rising_edge(sys_clk) then
             if not endfile(rec_r_q1) then
                 readline(rec_r_q1, l);
                 read(l, data_temp);

@@ -84,12 +84,11 @@ architecture rtl of p_tll is
 	signal e_add1		: signed_array_16(0 to 1):=(others=>(others=>'0'));
 	signal e_total 		: signed(16 downto 0):=(others=>'0');
 	signal e_in 		: signed(13 downto 0):=(others=>'0');
-	signal vp,vi_p    	: signed(31 downto 0):=(others=>'0');
+	signal vp    	: signed(31 downto 0):=(others=>'0');
 	signal v			: signed(31 downto 0):=(others=>'0');
-	signal v_next		: signed(31 downto 0):=(others=>'0');
 	signal vi			: signed(31 downto 0):=(others=>'0');
-	signal vi_next		: signed(31 downto 0):=(others=>'0');
-	signal vp_1, vp_2   : signed(31 downto 0):=(others=>'0');
+	attribute MARK_DEBUG : string;
+	attribute MARK_DEBUG of mu_cur : signal is "TRUE";
 begin       
 
 	-- calculate diff for all branches
@@ -205,6 +204,30 @@ begin
 					mu_cur <= mu_ext(N-3);
 				elsif underflow(N-4) = '1' then
 					mu_cur <= mu_ext(N-4);
+				elsif underflow(N-5) = '1' then
+					mu_cur <= mu_ext(N-5);
+				elsif underflow(N-6) = '1' then
+					mu_cur <= mu_ext(N-6);
+				elsif underflow(N-7) = '1' then
+					mu_cur <= mu_ext(N-7);
+				elsif underflow(N-8) = '1' then
+					mu_cur <= mu_ext(N-8);
+				elsif underflow(N-9) = '1' then
+					mu_cur <= mu_ext(N-9);
+				elsif underflow(N-10) = '1' then
+					mu_cur <= mu_ext(N-10);
+				elsif underflow(N-11) = '1' then
+					mu_cur <= mu_ext(N-11);
+				elsif underflow(N-12) = '1' then
+					mu_cur <= mu_ext(N-12);
+				elsif underflow(N-13) = '1' then
+					mu_cur <= mu_ext(N-13);
+				elsif underflow(N-14) = '1' then
+					mu_cur <= mu_ext(N-14);
+				elsif underflow(N-15) = '1' then
+					mu_cur <= mu_ext(N-15);
+				elsif underflow(N-16) = '1' then
+					mu_cur <= mu_ext(N-16);
 				end if;
 			end if;
 		end if;

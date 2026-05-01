@@ -84,6 +84,8 @@ architecture rtl of p_pll is
 	signal phase_int_v	 			: signed_array_32(0 to N-1):=(others=>(others=>'0'));
 	signal phase_int_v_wrap	 		: signed_array_32(0 to N-1):=(others=>(others=>'0'));
 	signal phase_int_v_wrap_fix	 	: std_logic_array_16(0 to N-1):=(others=>(others=>'0'));
+	attribute MARK_DEBUG : string;
+	attribute MARK_DEBUG of phase_int : signal is "TRUE";
 begin
 
 	process(sys_clk)
@@ -128,6 +130,7 @@ begin
 		max_denom_int(ii) <= max_denom(ii)(24 downto 14);
 	end generate gen;
 
+	-- Q2.7
 	gen_nco: for ii in 0 to N/2-1 generate
 		u_lut: COS_SIN_LUT
 		PORT map(
@@ -194,14 +197,14 @@ begin
 					end if;
 					iq_sign_reg(ii) <= iq_sign(ii);
 					case iq_sign(ii) is
-						when "00" => --  pi/4
+						when "00" => --  pi/4,1
 							phase_in(ii) <= PI_1_4_POS;
-						when "10" => -- -pi/4
-							phase_in(ii) <= PI_1_4_NEG;
-						when "01" => -- -3*pi/4
-							phase_in(ii) <= PI_3_4_NEG;
-						when "11" => -- 3*pi/4
+						when "01" => -- 3*pi/4,2
 							phase_in(ii) <= PI_3_4_POS;
+						when "10" => -- -pi/4,4
+							phase_in(ii) <= PI_1_4_NEG;
+						when "11" => -- -3*pi/4,3
+							phase_in(ii) <= PI_3_4_NEG;
 						when others => null;
 					end case;
 				end loop;
@@ -299,17 +302,17 @@ begin
 							else
 								phase_diff(ii) <= resize(PI_1_2_POS,18) - resize(signed(dout_atan(ii)),18) - resize(phase_in(ii),18);
 							end if;
-						when "01" => -- 4
-							if lower_pos(ii) = '1' then
-								phase_diff(ii) <= resize(-signed(dout_atan(ii)),18) - resize(phase_in(ii),18);
-							else
-								phase_diff(ii) <= resize(PI_1_2_NEG,18) + resize(signed(dout_atan(ii)),18) - resize(phase_in(ii),18);
-							end if;
-						when "10" => -- 2
+						when "01" => -- 2
 							if lower_pos(ii) = '1' then
 								phase_diff(ii) <= resize(PI_POS,18) - resize(signed(dout_atan(ii)),18) - resize(phase_in(ii),18);
 							else
 								phase_diff(ii) <= resize(PI_1_2_POS,18) + resize(signed(dout_atan(ii)),18) - resize(phase_in(ii),18);
+							end if;
+						when "10" => -- 4
+							if lower_pos(ii) = '1' then
+								phase_diff(ii) <= resize(-signed(dout_atan(ii)),18) - resize(phase_in(ii),18);
+							else
+								phase_diff(ii) <= resize(PI_1_2_NEG,18) + resize(signed(dout_atan(ii)),18) - resize(phase_in(ii),18);
 							end if;
 						when "11" => -- 3
 							if lower_pos(ii) = '1' then
@@ -347,7 +350,7 @@ begin
 
 	-- Q8.13 /16 -> 4.17
 	-- K1 = (1/2^11+1/2^9); K1*Q4.17 = Q0.28 + Q0.26
-	-- K2 = (1/2^11);	K2*Q4.11 = Q0.28
+	-- K2 = (1/2^11);	K2*Q4.17 = Q0.28
 	process(sys_clk)
 	begin
 		if rising_edge(sys_clk) then
