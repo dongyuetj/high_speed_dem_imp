@@ -272,23 +272,23 @@ architecture rtl of hs_dem is
 	file rec_w_qq : text open write_mode is "D:\projects\46_high_speed_dem\sim\hs_sync_symb_q.txt";
 	-- synthesis translate_on
 begin
-	-- only for sim
-	process(sys_clk)
-	begin
-		if rising_edge(sys_clk) then
-			if rst_n = '0'  then	
-				srst_fifo <= '1';
-				rst_n_agc <= '0';
-				rst_n_tll <= '0';
-				rst_n_pll <= '0';
-			else
-				srst_fifo <= '0';
-				rst_n_agc <= '1';
-				rst_n_tll <= '1';
-				rst_n_pll <= '1';
-			end if;
-		end if;
-	end process;
+--	-- only for sim
+--	process(sys_clk)
+--	begin
+--		if rising_edge(sys_clk) then
+--			if rst_n = '0'  then	
+--				srst_fifo <= '1';
+--				rst_n_agc <= '0';
+--				rst_n_tll <= '0';
+--				rst_n_pll <= '0';
+--			else
+--				srst_fifo <= '0';
+--				rst_n_agc <= '1';
+--				rst_n_tll <= '1';
+--				rst_n_pll <= '1';
+--			end if;
+--		end if;
+--	end process;
 
 	-- sym_type 
 	-- 000: BPSK
@@ -299,187 +299,187 @@ begin
 	-- 101: 8QAM
 	-- 110: 16QAM
 
---	u_vio_hs_dem: vio_hs_dem
---	port map(
---				 clk 		 => sys_clk				,
---				 probe_out0  => open				,
---				 probe_out1  => rstn_handset		,
---				 probe_out2  => ddc_select			,
---				 probe_out3  => log_ref				,
---				 probe_out4  => probe_out4 				,
---				 probe_out5  => probe_out5 				,
---				 probe_out6  => probe_out6 				,
---				 probe_out7  => probe_out7 				,
---				 probe_out8  => probe_out8 				,
---				 probe_out9  => probe_out9 				,
---				 probe_out10 => probe_out10				,
---				 probe_out11 => probe_out11				,
---				 probe_out12 => probe_out12				,
---				 probe_out13 => probe_out13				
---			 );
---
---	SIG_DET_WIN_LEN	<= unsigned(probe_out4);
---	SIG_OCCUR_NUM	<= unsigned(probe_out5);
---	NOISE_POW		<= signed(probe_out6); 
---	AGC_ERR_EXP		<= signed(probe_out7);
---	TLL_DET_WIN_LEN <= unsigned(probe_out8); 
---	TLL_LOOP_ABS		<= signed(probe_out9); 
---	TLL_LOCKED_NUM	<= unsigned(probe_out10); 
---	PLL_DET_WIN_LEN <= unsigned(probe_out11);
---	PLL_LOOP_ABS		<= signed(probe_out12);
---	PLL_LOCKED_NUM	<= unsigned(probe_out13); 
---
---	process(sys_clk)
---	begin
---		if rising_edge(sys_clk) then
---			if rst_n = '0' or rstn_handset(0) = '0' then	
---				dem_sts <= st_idle;
---			else
---				case dem_sts is
---					when st_idle	 =>
---						if rst_n_agc = '0' then
---							dem_sts <= st_idle;
---						elsif (iq_vld = '1') then
---							if sig_det_win = SIG_DET_WIN_LEN then
---								if (sig_occurs < SIG_OCCUR_NUM) then
---									dem_sts <= st_idle;
---								else
---									dem_sts <= st_acq_tll;
---								end if;
---							end if;
---						end if;
---					when st_acq_tll  =>
---						if rst_n_agc = '0' then
---							dem_sts <= st_idle;
---						elsif (tll_loop_out_vld = '1') then
---							if tll_det_win = TLL_DET_WIN_LEN then
---								if (cnt_tll_locked < TLL_LOCKED_NUM) then
---									dem_sts <= st_idle;
---								else
---									dem_sts <= st_acq_pll;
---								end if;
---							end if;
---						end if;
---					when st_acq_pll  =>
---						if rst_n_agc = '0' then
---							dem_sts <= st_idle;
---						elsif (pll_loop_out_vld = '1') then
---							if pll_det_win = PLL_DET_WIN_LEN then
---								if (cnt_pll_locked < PLL_LOCKED_NUM) then
---									dem_sts <= st_idle;
---								end if;
---							end if;
---						end if;
---					when others =>
---						if rst_n_agc = '0' then
---							dem_sts <= st_idle;
---						end if;
---				end case;
---			end if;
---		end if;
---	end process; 
---
---	process(sys_clk)
---	begin
---		if rising_edge(sys_clk) then
---			if rst_n = '0' or rstn_handset(0) = '0' then	
---				srst_fifo <= '1';
---				rst_n_agc <= '0'; 
---				rst_n_tll <= '0'; 
---				rst_n_pll <= '0'; 
---			else
---				case dem_sts is
---					when st_idle	 =>
---						srst_fifo <= '0';
---						tll_det_win <= (others=>'0'); 
---						cnt_tll_locked <= (others=>'0'); 
---						tll_locked <= '0';
---						pll_det_win <= (others=>'0'); 
---						cnt_pll_locked <= (others=>'0'); 
---						pll_locked <= '0';
---						rst_n_pll <= '0';
---						rst_n_agc <= '1';
---						-- wait signal occurs and agc locked
---						if rst_n_agc = '0' then
---							sig_det_win <= (others=>'0'); 
---							sig_occurs <= (others=>'0'); 
---							rst_n_tll <= '0';
---						elsif iq_vld = '1' then
---							error_exp <= signed(agc_error(30 downto 23)) - 127;
---							if sig_det_win = SIG_DET_WIN_LEN then
---								sig_det_win <= (others=>'0'); 
---								sig_occurs <= (others=>'0'); 
---								if (sig_occurs >= SIG_OCCUR_NUM) then
---									rst_n_tll <= '1';
---								else
---									rst_n_tll <= '0';
---								end if;
---							else
---								sig_det_win <= sig_det_win + 1;
---								if (signed(power_out) >= NOISE_POW) and (signed(error_exp) <= AGC_ERR_EXP) then
---									sig_occurs <= sig_occurs + 1;
---								end if;
---								rst_n_tll <= '0';
---							end if;
---						end if;
---					when st_acq_tll	 =>
---						srst_fifo <= '0';
---						-- wait TLL locked
---						if (tll_loop_out_vld = '1') then
---							if tll_det_win = TLL_DET_WIN_LEN then
---								tll_det_win <= (others=>'0'); 
---								cnt_tll_locked <= (others=>'0'); 
---								if (cnt_tll_locked >= TLL_LOCKED_NUM) then
---									tll_locked <= '1';
---									rst_n_pll <= '1';
---								else
---									tll_locked <= '0';
---									rst_n_pll <= '0';
---								end if;
---							else
---								tll_det_win <= tll_det_win + 1;
---								if (abs(signed(tll_loop_dout)) <= TLL_LOOP_ABS) then
---									cnt_tll_locked <= cnt_tll_locked + 1;
---								end if;
---							end if;
---						end if;
---						if rst_n_agc = '0' then
---							sig_det_win <= (others=>'0'); 
---							sig_occurs <= (others=>'0'); 
---						end if;
---					when st_acq_pll  =>
---						srst_fifo <= '0';
---						-- wait PLL locked
---						if (pll_loop_out_vld = '1') then
---							if pll_det_win = PLL_DET_WIN_LEN then
---								pll_det_win <= (others=>'0'); 
---								cnt_pll_locked <= (others=>'0'); 
---								if (cnt_pll_locked >= PLL_LOCKED_NUM) then
---									pll_locked <= '1';
---								else
---									pll_locked <= '0';
---								end if;
---							else
---								pll_det_win <= pll_det_win + 1;
---								if (abs(signed(pll_loop_dout)) <= PLL_LOOP_ABS) then
---									cnt_pll_locked <= cnt_pll_locked + 1;
---								end if;
---							end if;
---						end if;
---						if rst_n_agc = '0' then
---							sig_det_win <= (others=>'0'); 
---							sig_occurs <= (others=>'0'); 
---						end if;
---					when others => 
---						srst_fifo <= '0';
---						if rst_n_agc = '0' then
---							sig_det_win <= (others=>'0'); 
---							sig_occurs <= (others=>'0'); 
---						end if;
---				end case;
---			end if;
---		end if;
---	end process;
+	u_vio_hs_dem: vio_hs_dem
+	port map(
+				 clk 		 => sys_clk				,
+				 probe_out0  => open				,
+				 probe_out1  => rstn_handset		,
+				 probe_out2  => ddc_select			,
+				 probe_out3  => log_ref				,
+				 probe_out4  => probe_out4 				,
+				 probe_out5  => probe_out5 				,
+				 probe_out6  => probe_out6 				,
+				 probe_out7  => probe_out7 				,
+				 probe_out8  => probe_out8 				,
+				 probe_out9  => probe_out9 				,
+				 probe_out10 => probe_out10				,
+				 probe_out11 => probe_out11				,
+				 probe_out12 => probe_out12				,
+				 probe_out13 => probe_out13				
+			 );
+
+	SIG_DET_WIN_LEN	<= unsigned(probe_out4);
+	SIG_OCCUR_NUM	<= unsigned(probe_out5);
+	NOISE_POW		<= signed(probe_out6); 
+	AGC_ERR_EXP		<= signed(probe_out7);
+	TLL_DET_WIN_LEN <= unsigned(probe_out8); 
+	TLL_LOOP_ABS		<= signed(probe_out9); 
+	TLL_LOCKED_NUM	<= unsigned(probe_out10); 
+	PLL_DET_WIN_LEN <= unsigned(probe_out11);
+	PLL_LOOP_ABS		<= signed(probe_out12);
+	PLL_LOCKED_NUM	<= unsigned(probe_out13); 
+
+	process(sys_clk)
+	begin
+		if rising_edge(sys_clk) then
+			if rst_n = '0' or rstn_handset(0) = '0' then	
+				dem_sts <= st_idle;
+			else
+				case dem_sts is
+					when st_idle	 =>
+						if rst_n_agc = '0' then
+							dem_sts <= st_idle;
+						elsif (iq_vld = '1') then
+							if sig_det_win = SIG_DET_WIN_LEN then
+								if (sig_occurs < SIG_OCCUR_NUM) then
+									dem_sts <= st_idle;
+								else
+									dem_sts <= st_acq_tll;
+								end if;
+							end if;
+						end if;
+					when st_acq_tll  =>
+						if rst_n_agc = '0' then
+							dem_sts <= st_idle;
+						elsif (tll_loop_out_vld = '1') then
+							if tll_det_win = TLL_DET_WIN_LEN then
+								if (cnt_tll_locked < TLL_LOCKED_NUM) then
+									dem_sts <= st_idle;
+								else
+									dem_sts <= st_acq_pll;
+								end if;
+							end if;
+						end if;
+					when st_acq_pll  =>
+						if rst_n_agc = '0' then
+							dem_sts <= st_idle;
+						elsif (pll_loop_out_vld = '1') then
+							if pll_det_win = PLL_DET_WIN_LEN then
+								if (cnt_pll_locked < PLL_LOCKED_NUM) then
+									dem_sts <= st_idle;
+								end if;
+							end if;
+						end if;
+					when others =>
+						if rst_n_agc = '0' then
+							dem_sts <= st_idle;
+						end if;
+				end case;
+			end if;
+		end if;
+	end process; 
+
+	process(sys_clk)
+	begin
+		if rising_edge(sys_clk) then
+			if rst_n = '0' or rstn_handset(0) = '0' then	
+				srst_fifo <= '1';
+				rst_n_agc <= '0'; 
+				rst_n_tll <= '0'; 
+				rst_n_pll <= '0'; 
+			else
+				case dem_sts is
+					when st_idle	 =>
+						srst_fifo <= '0';
+						tll_det_win <= (others=>'0'); 
+						cnt_tll_locked <= (others=>'0'); 
+						tll_locked <= '0';
+						pll_det_win <= (others=>'0'); 
+						cnt_pll_locked <= (others=>'0'); 
+						pll_locked <= '0';
+						rst_n_pll <= '0';
+						rst_n_agc <= '1';
+						-- wait signal occurs and agc locked
+						if rst_n_agc = '0' then
+							sig_det_win <= (others=>'0'); 
+							sig_occurs <= (others=>'0'); 
+							rst_n_tll <= '0';
+						elsif iq_vld = '1' then
+							error_exp <= signed(agc_error(30 downto 23)) - 127;
+							if sig_det_win = SIG_DET_WIN_LEN then
+								sig_det_win <= (others=>'0'); 
+								sig_occurs <= (others=>'0'); 
+								if (sig_occurs >= SIG_OCCUR_NUM) then
+									rst_n_tll <= '1';
+								else
+									rst_n_tll <= '0';
+								end if;
+							else
+								sig_det_win <= sig_det_win + 1;
+								if (signed(power_out) >= NOISE_POW) and (signed(error_exp) <= AGC_ERR_EXP) then
+									sig_occurs <= sig_occurs + 1;
+								end if;
+								rst_n_tll <= '0';
+							end if;
+						end if;
+					when st_acq_tll	 =>
+						srst_fifo <= '0';
+						-- wait TLL locked
+						if (tll_loop_out_vld = '1') then
+							if tll_det_win = TLL_DET_WIN_LEN then
+								tll_det_win <= (others=>'0'); 
+								cnt_tll_locked <= (others=>'0'); 
+								if (cnt_tll_locked >= TLL_LOCKED_NUM) then
+									tll_locked <= '1';
+									rst_n_pll <= '1';
+								else
+									tll_locked <= '0';
+									rst_n_pll <= '0';
+								end if;
+							else
+								tll_det_win <= tll_det_win + 1;
+								if (abs(signed(tll_loop_dout)) <= TLL_LOOP_ABS) then
+									cnt_tll_locked <= cnt_tll_locked + 1;
+								end if;
+							end if;
+						end if;
+						if rst_n_agc = '0' then
+							sig_det_win <= (others=>'0'); 
+							sig_occurs <= (others=>'0'); 
+						end if;
+					when st_acq_pll  =>
+						srst_fifo <= '0';
+						-- wait PLL locked
+						if (pll_loop_out_vld = '1') then
+							if pll_det_win = PLL_DET_WIN_LEN then
+								pll_det_win <= (others=>'0'); 
+								cnt_pll_locked <= (others=>'0'); 
+								if (cnt_pll_locked >= PLL_LOCKED_NUM) then
+									pll_locked <= '1';
+								else
+									pll_locked <= '0';
+								end if;
+							else
+								pll_det_win <= pll_det_win + 1;
+								if (abs(signed(pll_loop_dout)) <= PLL_LOOP_ABS) then
+									cnt_pll_locked <= cnt_pll_locked + 1;
+								end if;
+							end if;
+						end if;
+						if rst_n_agc = '0' then
+							sig_det_win <= (others=>'0'); 
+							sig_occurs <= (others=>'0'); 
+						end if;
+					when others => 
+						srst_fifo <= '0';
+						if rst_n_agc = '0' then
+							sig_det_win <= (others=>'0'); 
+							sig_occurs <= (others=>'0'); 
+						end if;
+				end case;
+			end if;
+		end if;
+	end process;
 
 
 	process(sys_clk)
