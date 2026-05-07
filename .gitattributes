@@ -1,0 +1,4 @@
+*.vhd text eol=lf
+*.v text eol=lf
+*.sv text eol=lf
+*.tcl text eol=lf
