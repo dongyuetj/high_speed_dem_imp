@@ -26,6 +26,8 @@ architecture sim of tb_tb_hs_dem is
 		data1_i  : in std_logic_vector(15 downto 0);
 		data1_q  : in std_logic_vector(15 downto 0);
 		dem_vld  : out std_logic:='0';
+		dem_sym_i		: out std_logic_vector(15 downto 0):= (others=>'0');
+		dem_sym_q		: out std_logic_vector(15 downto 0):= (others=>'0');
 		dem_byte : out std_logic_vector(7 downto 0):=(others=>'0')
     );
 	end component;
@@ -41,7 +43,7 @@ architecture sim of tb_tb_hs_dem is
     signal data0_q      : std_logic_vector(15 downto 0):=(others=>'0');
     signal data1_i      : std_logic_vector(15 downto 0):=(others=>'0');
     signal data1_q      : std_logic_vector(15 downto 0):=(others=>'0');
-	signal data_vld		: std_logic:='0';
+	signal data_vld		: std_logic:='1';
 	signal dem_vld  	: std_logic:='0';
 	signal dem_byte 	: std_logic_vector(7 downto 0):=(others=>'0');
 

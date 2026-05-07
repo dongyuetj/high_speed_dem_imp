@@ -33,21 +33,37 @@ end p_agc;
 
 architecture arch of p_agc is
 
-	component p_power_detect
-	generic(
-			   moving_window_len : integer:=16;
-			   N : integer := 8);
-	port(
+--	component p_power_detect
+--	generic(
+--			   moving_window_len : integer:=16;
+--			   N : integer := 8);
+--	port(
+--
+--			sys_clk				: in std_logic; -- 28.8MHz
+--			aresetn 			: in std_logic;
+--			start_level  		: in std_logic_vector(31 downto 0);
+--			wave_in_valid 		: in std_logic;
+--			wave_in_i 			: in std_logic_array_16(0 to N-1);
+--			wave_in_q			: in std_logic_array_16(0 to N-1);
+--			power_valid	    	: out std_logic;
+--			power_out			: out std_logic_vector(31 downto 0)
+--		);
+--	end component;
 
-			sys_clk				: in std_logic; -- 28.8MHz
-			aresetn 			: in std_logic;
-			start_level  		: in std_logic_vector(31 downto 0);
-			wave_in_valid 		: in std_logic;
-			wave_in_i 			: in std_logic_array_16(0 to N-1);
-			wave_in_q			: in std_logic_array_16(0 to N-1);
-			power_valid	    	: out std_logic;
-			power_out			: out std_logic_vector(31 downto 0)
-		);
+	component pwr_det
+    generic(
+        moving_window_len : integer := 4;
+        N                 : integer := 16 -- 建议为2的幂次
+    );
+    port(
+        sys_clk        : in std_logic; 
+        aresetn        : in std_logic;
+        wave_in_valid  : in std_logic;
+        wave_in_i      : in std_logic_array_16(0 to N-1);
+        wave_in_q      : in std_logic_array_16(0 to N-1);
+        power_valid    : out std_logic;
+        power_out      : out std_logic_vector(31 downto 0)
+    );
 	end component;
 
 	component fix2float
@@ -220,24 +236,68 @@ architecture arch of p_agc is
 	signal wave_dly				: std_logic_array_32(0 to N-1):=(others=>(others=>'0'));
 	signal greater_equal_flag	: std_logic:='0';
 	signal greater_equal_res	: std_logic_vector(7 downto 0):=(others=>'0'); 
+	signal power_valid_d 		: std_logic:='0';
+	signal pwr_in_vld 			: std_logic:='0';
+	signal pwr_in 				: std_logic_vector(31 downto 0):=(others=>'0');
+	signal agc_sts 				: std_logic:='0';
 begin
 
 	agc_error <= e_data;
 	power_out_o <= power_out;
 	exp_gain_o <= exp_gain_cmp;
 
-	u_pwr_det: p_power_detect
-	generic map(moving_window_len => 4, N => N)
-	port map(
-				sys_clk			=> 	sys_clk			,
-				aresetn 		=>  aresetn			,
-				start_level  	=>  (others=>'0') 	,
-				wave_in_valid 	=> 	wave_in_valid 	,
-				wave_in_i 		=>	wave_in_i		,
-				wave_in_q		=>	wave_in_q		,
-				power_valid	    =>  power_valid		,
-				power_out		=>  power_out
-			);
+--	u_pwr_det: p_power_detect
+--	generic map(moving_window_len => 4, N => N)
+--	port map(
+--				sys_clk			=> 	sys_clk			,
+--				aresetn 		=>  aresetn			,
+--				start_level  	=>  (others=>'0') 	,
+--				wave_in_valid 	=> 	wave_in_valid 	,
+--				wave_in_i 		=>	wave_in_i		,
+--				wave_in_q		=>	wave_in_q		,
+--				power_valid	    =>  power_valid		,
+--				power_out		=>  power_out
+--			);
+
+	u_pwr_det: pwr_det
+    generic map( moving_window_len => 4, N => 16 )
+    port map(
+        sys_clk        => sys_clk,
+        aresetn        => aresetn,
+        wave_in_valid  => wave_in_valid,
+        wave_in_i      => wave_in_i,
+        wave_in_q      => wave_in_q,
+        power_valid    => power_valid,
+        power_out      => power_out
+    );
+
+	process(sys_clk)
+	begin
+		if rising_edge(sys_clk) then
+			power_valid_d <= power_valid; 
+		end if;
+	end process; 
+
+	process(sys_clk)
+	begin
+		if rising_edge(sys_clk) then
+			if aresetn = '0' then
+				agc_sts <= '0';	
+				pwr_in_vld <= '0';
+			elsif agc_sts = '0' then 
+				if (power_valid = '1') and (power_valid_d = '0') then
+					agc_sts <= '1';
+					pwr_in_vld <= '1';
+					pwr_in <= power_out;
+				end if;
+			elsif agc_sts = '1' then
+				pwr_in_vld <= '0';
+				if exp_gain_valid = '1' then
+					agc_sts <= '0';
+				end if;
+			end if;
+		end if;
+	end process; 
 
 	-- update the gain
 	u_fix2float_z: fix2float

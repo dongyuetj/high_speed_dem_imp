@@ -25,6 +25,8 @@ entity hs_dem is
 		data1_i  : in std_logic_vector(15 downto 0);
 		data1_q  : in std_logic_vector(15 downto 0);
 		dem_vld  : out std_logic:='0';
+		dem_sym_i		: out std_logic_vector(15 downto 0):= (others=>'0');
+		dem_sym_q		: out std_logic_vector(15 downto 0):= (others=>'0');
 		dem_byte : out std_logic_vector(7 downto 0):=(others=>'0')
     );
 end hs_dem;
@@ -156,8 +158,8 @@ architecture rtl of hs_dem is
 	signal sync_symb_en_d		: std_logic_vector(N-1 downto 0):=(others=>'0');
 	signal sync_symb_i 			: std_logic_array_8(0 to N-1):=(others=>(others=>'0'));
 	signal sync_symb_q 			: std_logic_array_8(0 to N-1):=(others=>(others=>'0'));
-	signal sync_symb_i_reg 		: std_logic_array_8(0 to N-1):=(others=>(others=>'0'));
-	signal sync_symb_q_reg		: std_logic_array_8(0 to N-1):=(others=>(others=>'0'));
+	signal sync_symb_i_reg 		: signed_array_16(0 to N-1):=(others=>(others=>'0'));
+	signal sync_symb_q_reg		: signed_array_16(0 to N-1):=(others=>(others=>'0'));
 	signal symb_wren			: std_logic:='0';
 	signal rden					: std_logic:='0';
 	signal rden_d				: std_logic:='0';
@@ -218,6 +220,7 @@ architecture rtl of hs_dem is
 	signal sym_type		: std_logic_vector(2 downto 0):="001";
 	signal rstn_handset	: std_logic_vector(0 downto 0):=(others=>'1');
 	signal ddc_select   : std_logic_vector(1 downto 0):=(others=>'0'); 
+--	signal ddc_select_reg   : std_logic_vector(1 downto 0):=(others=>'0'); 
 	signal probe_out4 : std_logic_vector(7 downto 0):=(others=>'0');
 	signal probe_out5 : std_logic_vector(7 downto 0):=(others=>'0');
 	signal probe_out6 : std_logic_vector(31 downto 0):=(others=>'0');
@@ -229,6 +232,8 @@ architecture rtl of hs_dem is
 	signal probe_out12 :std_logic_vector(31 downto 0):=(others=>'0');
 	signal probe_out13 :std_logic_vector(9 downto 0):=(others=>'0');
 	signal cnt_n 			: integer range 0 to N-1:=0;
+	signal cnt_watch_dog : unsigned(7 downto 0):=(others=>'0');
+	signal rst_n_watch_dog : std_logic:='1';
 
 	attribute fsm_encoding : string;
 	attribute fsm_encoding of dem_sts : signal is "sequential";
@@ -253,6 +258,7 @@ architecture rtl of hs_dem is
 	attribute mark_debug of tll_loop_dout	 	 : signal is "TRUE";
 	attribute mark_debug of pll_loop_out_vld 	 : signal is "TRUE";
 	attribute mark_debug of pll_loop_dout	 	 : signal is "TRUE";
+	attribute mark_debug of data_vld 			: signal is "TRUE";
 
 	attribute mark_debug of data0_i  							: signal is "TRUE";	
 	attribute mark_debug of data0_q  							: signal is "TRUE";
@@ -262,6 +268,8 @@ architecture rtl of hs_dem is
 	attribute mark_debug of symb_en,symb_i,symb_q	             : signal is "TRUE";
 	attribute mark_debug of sync_symb_en,sync_symb_i,sync_symb_q : signal is "TRUE";
 	attribute mark_debug of dem_vld,dem_byte 					 : signal is "TRUE";
+	attribute MARK_DEBUG of cnt_watch_dog : signal is "TRUE";
+	attribute MARK_DEBUG of rst_n_watch_dog : signal is "TRUE";
 
 	-- synthesis translate_off
 	file rec_w_in_i : text open write_mode is "D:\projects\46_high_speed_dem\sim\hs_agc_i.txt";
@@ -332,7 +340,7 @@ begin
 	process(sys_clk)
 	begin
 		if rising_edge(sys_clk) then
-			if rst_n = '0' or rstn_handset(0) = '0' then	
+			if rst_n = '0' or rstn_handset(0) = '0' or rst_n_watch_dog = '0' then	
 				dem_sts <= st_idle;
 			else
 				case dem_sts is
@@ -379,10 +387,41 @@ begin
 		end if;
 	end process; 
 
+	-- watch dog
 	process(sys_clk)
 	begin
 		if rising_edge(sys_clk) then
-			if rst_n = '0' or rstn_handset(0) = '0' then	
+			if dem_sts = st_acq_pll then
+				if symb_en /= x"0000" then
+					cnt_watch_dog <= (others=>'0');
+				else
+					cnt_watch_dog <= cnt_watch_dog + 1;
+				end if;
+				if cnt_watch_dog = 255 then
+					rst_n_watch_dog <= '0';
+				else
+					rst_n_watch_dog <= '1';
+				end if;
+			else
+				if wave_out_valid = '1' then
+					cnt_watch_dog <= (others=>'0');
+				else
+					cnt_watch_dog <= cnt_watch_dog + 1;
+				end if;
+				if cnt_watch_dog = 255 then
+					rst_n_watch_dog <= '0';
+				else
+					rst_n_watch_dog <= '1';
+				end if;
+			end if;
+		end if;
+	end process;
+
+
+	process(sys_clk)
+	begin
+		if rising_edge(sys_clk) then
+			if rst_n = '0' or rstn_handset(0) = '0' or rst_n_watch_dog = '0' then	
 				srst_fifo <= '1';
 				rst_n_agc <= '0'; 
 				rst_n_tll <= '0'; 
@@ -481,14 +520,15 @@ begin
 		end if;
 	end process;
 
-
 	process(sys_clk)
 	begin
 		if rising_edge(sys_clk) then
 			if rst_n = '0' then
 				cnt_n <= 0;
 				wave_in_valid <= '0';
-			else
+				wave_in_i <= (others=>(others=>'0'));
+				wave_in_q <= (others=>(others=>'0'));
+			elsif data_vld = '1' then
 				if cnt_n = N-1 then
 					cnt_n <= 0;
 					wave_in_valid <= '1';
@@ -496,12 +536,17 @@ begin
 					cnt_n <= cnt_n + 1;
 					wave_in_valid <= '0'; 
 				end if;
-				wave_in_i(cnt_n) <= data0_i;
-				if data0_q = x"8000" then
-					wave_in_q(cnt_n) <= x"7FFF";
-				else
-					wave_in_q(cnt_n) <= std_logic_vector(-signed(data0_q));
-				end if;
+				wave_in_i(N-1) <= data0_i;
+				wave_in_q(N-1) <= data0_q;
+				for ii in N-2 downto 0 loop
+					wave_in_i(ii) <= wave_in_i(ii+1);
+					wave_in_q(ii) <= wave_in_q(ii+1);
+				end loop;
+			else
+				cnt_n <= 0;
+				wave_in_valid <= '0';
+				wave_in_i <= (others=>(others=>'0'));
+				wave_in_q <= (others=>(others=>'0'));
 			end if;
 		end if;
 	end process;
@@ -775,15 +820,17 @@ begin
 		if rising_edge(sys_clk) then
 			sync_symb_en_d <= sync_symb_en_d(N-2 downto 0) & sync_symb_en ;
 			for ii in 0 to N-1 loop
-				sync_symb_i_reg(ii) <=  sync_symb_i(ii);
-				sync_symb_q_reg(ii) <=  sync_symb_q(ii);
+				sync_symb_i_reg(ii) <=  resize(signed(sync_symb_i(ii)),16);
+				sync_symb_q_reg(ii) <=  resize(-signed(sync_symb_q(ii)),16);
 			end loop;
 			dem_vld <= '0';
 			for jj in 0 to N-1 loop
 				if sync_symb_en_d(jj) = '1' then
 					dem_vld <= '1';
+					dem_sym_i(15 downto 0) <= std_logic_vector(sync_symb_i_reg(jj) sll 6);
+					dem_sym_q(15 downto 0) <= std_logic_vector(sync_symb_q_reg(jj) sll 6);
 					dem_byte(0) <= sync_symb_i_reg(jj)(7);
-					dem_byte(1) <= sync_symb_q_reg(jj)(7);
+					dem_byte(1) <= (not sync_symb_q_reg(jj)(7));
 				end if;
 			end loop;
 		end if;
