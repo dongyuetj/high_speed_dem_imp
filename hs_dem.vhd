@@ -193,11 +193,11 @@ architecture rtl of hs_dem is
 
 	signal SIG_DET_WIN_LEN		: unsigned(7 downto 0):=to_unsigned(255, 8);
 	signal SIG_OCCUR_NUM		: unsigned(7 downto 0):=to_unsigned(64, 8);
-	signal NOISE_POW			: signed(31 downto 0):=to_signed(10000*2, 32);
+	signal NOISE_POW			: signed(31 downto 0):=to_signed(32, 32);
 	signal AGC_ERR_EXP			: signed(7 downto 0):=to_signed(-6, 8);
 	signal TLL_DET_WIN_LEN 		: unsigned(9 downto 0):=to_unsigned(1023,10);
 	signal TLL_LOOP_ABS			: signed(31 downto 0):=to_signed(2000000,32);
-	signal TLL_LOCKED_NUM		: unsigned(9 downto 0):=to_unsigned(768,10);
+	signal TLL_LOCKED_NUM		: unsigned(9 downto 0):=to_unsigned(848,10);
 
 	signal PLL_DET_WIN_LEN 		: unsigned(9 downto 0):=to_unsigned(1023,10);
 	signal PLL_LOOP_ABS			: signed(31 downto 0):=to_signed(1000000,32); 
