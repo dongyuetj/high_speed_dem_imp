@@ -50,11 +50,11 @@ architecture sim of tb_tb_hs_dem is
     -- File I/O
   --  file rec_r_i0 : text open read_mode  is "D:\projects\46_high_speed_dem\sim\rd_data_i.txt";
   --  file rec_r_q0 : text open read_mode  is "D:\projects\46_high_speed_dem\sim\rd_data_q.txt";
-    file rec_r_i0 : text open read_mode  is "D:\projects\46_high_speed_dem\sim\ddc_i0.txt";
-    file rec_r_q0 : text open read_mode  is "D:\projects\46_high_speed_dem\sim\ddc_q0.txt";
-    file rec_r_i1 : text open read_mode  is "D:\projects\46_high_speed_dem\sim\ddc_i1.txt";
-    file rec_r_q1 : text open read_mode  is "D:\projects\46_high_speed_dem\sim\ddc_q1.txt";
-    file rec_w_i : text open write_mode is "D:\projects\46_high_speed_dem\sim\dem_byte.txt";
+    file rec_r_i0 : text open read_mode  is "D:\projects\46_high_speed_dem\sim\toec_wb_sample\ddc_i0.txt";
+    file rec_r_q0 : text open read_mode  is "D:\projects\46_high_speed_dem\sim\toec_wb_sample\ddc_q0.txt";
+    file rec_r_i1 : text open read_mode  is "D:\projects\46_high_speed_dem\sim\txt\ddc_i1.txt";
+    file rec_r_q1 : text open read_mode  is "D:\projects\46_high_speed_dem\sim\txt\ddc_q1.txt";
+    file rec_w_i : text open write_mode is "D:\projects\46_high_speed_dem\sim\txt\dem_byte.txt";
 
 begin
 
