@@ -273,12 +273,12 @@ architecture rtl of hs_dem is
 	attribute MARK_DEBUG of rst_n_watch_dog : signal is "TRUE";
 
 	-- synthesis translate_off
-	file rec_w_in_i : text open write_mode is "D:\projects\46_high_speed_dem\sim\hs_agc_i.txt";
-	file rec_w_in_q : text open write_mode is "D:\projects\46_high_speed_dem\sim\hs_agc_q.txt";
-	file rec_w_i : text open write_mode is "D:\projects\46_high_speed_dem\sim\hs_symb_i.txt";
-	file rec_w_q : text open write_mode is "D:\projects\46_high_speed_dem\sim\hs_symb_q.txt";
-	file rec_w_ii : text open write_mode is "D:\projects\46_high_speed_dem\sim\hs_sync_symb_i.txt";
-	file rec_w_qq : text open write_mode is "D:\projects\46_high_speed_dem\sim\hs_sync_symb_q.txt";
+	file rec_w_in_i : text open write_mode is "hs_agc_i.txt";
+	file rec_w_in_q : text open write_mode is "hs_agc_q.txt";
+	file rec_w_i : text open write_mode is "hs_symb_i.txt";
+	file rec_w_q : text open write_mode is "hs_symb_q.txt";
+	file rec_w_ii : text open write_mode is "hs_sync_symb_i.txt";
+	file rec_w_qq : text open write_mode is "hs_sync_symb_q.txt";
 	-- synthesis translate_on
 begin
 	-- only for sim
