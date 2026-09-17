@@ -61,7 +61,7 @@ architecture rtl of p_tll is
 	signal diff			: unsigned_array_16(0 to N-1):=(others=>(others=>'0'));
 	signal mu_ext 		: std_logic_array_18(0 to N-1):=(others=>(others=>'0'));
 	signal one_minus_mu	: signed_array_18(0 to N-1):=(others=>(others=>'0'));
-	signal mu_cur 		: std_logic_vector(17 downto 0):=(others=>'0');
+	signal mu_cur_i 		: std_logic_vector(17 downto 0):=(others=>'0');
 	signal mulI0		: signed_array_26(0 to N-1):=(others=>(others=>'0'));
 	signal mulQ0		: signed_array_26(0 to N-1):=(others=>(others=>'0'));
 	signal mulI1		: signed_array_26(0 to N-1):=(others=>(others=>'0'));
@@ -88,7 +88,7 @@ architecture rtl of p_tll is
 	signal v			: signed(31 downto 0):=(others=>'0');
 	signal vi			: signed(31 downto 0):=(others=>'0');
 	attribute MARK_DEBUG : string;
-	attribute MARK_DEBUG of mu_cur : signal is "TRUE";
+	attribute MARK_DEBUG of mu_cur_i : signal is "TRUE";
 begin       
 
 	-- calculate diff for all branches
@@ -152,83 +152,82 @@ begin
         end if;
     end process;
 
-	-- update mu when underflow
-	process(sys_clk)
-	begin
-		if rising_edge(sys_clk) then
-			if iq_vld_d(0) = '1' then
-				for ii in 0 to N - 1 loop
-					if diff(ii) < W then
-						underflow(ii) <= '1';
-						-- unsigned 16 was extended to Q1.16 by adding a signed bit and an integer bit
-						mu_ext(ii)        <= std_logic_vector('0' & diff(ii) & '0');
-						one_minus_mu(ii)  <= ONE_Q1p16 - signed('0' & diff(ii) & '0');
-					else
-						underflow(ii) <= '0';
-						mu_ext(ii)        <= mu_cur;
-						one_minus_mu(ii)  <= ONE_Q1p16 - signed(mu_cur);
-					end if;
-				end loop;
-			end if;
-		end if;
-	end process;
-
 	-- interpolation 
 	process(sys_clk)
+        signal mu_tmp 		: std_logic_vector(17 downto 0):=(others=>'0');
 	begin
 		if rising_edge(sys_clk) then
-			-- Q1.16 * Q7.0 = Q8.16, 2 signed bits + 8 integer bits + 16 fractional bits
-			if iq_vld_d(1) = '1' then
-				for ii in 0 to N-1 loop
-					mulI0(ii) <= signed(mu_ext(ii)) * signed(data_i_reg(N+ii));
-					mulQ0(ii) <= signed(mu_ext(ii)) * signed(data_q_reg(N+ii));
-					mulI1(ii) <= one_minus_mu(ii) * signed(data_i_reg(N+ii-1));
-					mulQ1(ii) <= one_minus_mu(ii) * signed(data_q_reg(N+ii-1));
-				end loop;
-			end if;
 			-- Q8.16 + Q8.16 = Q9.16
 			if rst_n = '0' then
-				mu_cur <= std_logic_vector(to_unsigned(2**15,18));
+				mu_cur_reg <= std_logic_vector(to_unsigned(2**15,18));
 			else
+                -- update mu when underflow
+                if iq_vld_d(0) = '1' then
+                    mu_tmp := mu_cur_reg;
+                    for ii in 0 to N - 1 loop
+                        if diff(ii) < W then
+                            underflow(ii) <= '1';
+                        -- unsigned 16 was extended to Q1.16 by adding a signed bit and an integer bit
+                            mu_ext(ii)        <= std_logic_vector('0' & diff(ii) & '0');
+                            one_minus_mu(ii)  <= ONE_Q1p16 - signed('0' & diff(ii) & '0');
+                            mu_tmp            := std_logic_vector('0' & diff(ii) & '0');
+                        else
+                            underflow(ii) <= '0';
+                            mu_ext(ii)        <= mu_tmp;
+                            one_minus_mu(ii)  <= ONE_Q1p16 - signed(mu_tmp);
+                        end if;
+                    end loop;
+                    mu_cur_next <= mu_tmp;
+                end if;
+                -- Q1.16 * Q7.0 = Q8.16, 2 signed bits + 8 integer bits + 16 fractional bits
+                if iq_vld_d(1) = '1' then
+                    mu_cur_reg <= mu_cur_next;
+                    for ii in 0 to N-1 loop
+                        mulI0(ii) <= signed(mu_ext(ii)) * signed(data_i_reg(N+ii));
+                        mulQ0(ii) <= signed(mu_ext(ii)) * signed(data_q_reg(N+ii));
+                        mulI1(ii) <= one_minus_mu(ii) * signed(data_i_reg(N+ii-1));
+                        mulQ1(ii) <= one_minus_mu(ii) * signed(data_q_reg(N+ii-1));
+                    end loop;
+                end if;
 				if iq_vld_d(2) = '1' then
 					for ii in 0 to N-1 loop
 						xI(ii) <= mulI0(ii) + mulI1(ii); -- do not need to extention due to 2 signed bits
 						xQ(ii) <= mulQ0(ii) + mulQ1(ii);
 					end loop;
 				end if;
-				if underflow(N-1) = '1' then
-					mu_cur <= mu_ext(N-1);
-				elsif underflow(N-2) = '1' then
-					mu_cur <= mu_ext(N-2);
-				elsif underflow(N-3) = '1' then
-					mu_cur <= mu_ext(N-3);
-				elsif underflow(N-4) = '1' then
-					mu_cur <= mu_ext(N-4);
-				elsif underflow(N-5) = '1' then
-					mu_cur <= mu_ext(N-5);
-				elsif underflow(N-6) = '1' then
-					mu_cur <= mu_ext(N-6);
-				elsif underflow(N-7) = '1' then
-					mu_cur <= mu_ext(N-7);
-				elsif underflow(N-8) = '1' then
-					mu_cur <= mu_ext(N-8);
-				elsif underflow(N-9) = '1' then
-					mu_cur <= mu_ext(N-9);
-				elsif underflow(N-10) = '1' then
-					mu_cur <= mu_ext(N-10);
-				elsif underflow(N-11) = '1' then
-					mu_cur <= mu_ext(N-11);
-				elsif underflow(N-12) = '1' then
-					mu_cur <= mu_ext(N-12);
-				elsif underflow(N-13) = '1' then
-					mu_cur <= mu_ext(N-13);
-				elsif underflow(N-14) = '1' then
-					mu_cur <= mu_ext(N-14);
-				elsif underflow(N-15) = '1' then
-					mu_cur <= mu_ext(N-15);
-				elsif underflow(N-16) = '1' then
-					mu_cur <= mu_ext(N-16);
-				end if;
+			--	if underflow(N-1) = '1' then
+			--		mu_cur <= mu_ext(N-1);
+			--	elsif underflow(N-2) = '1' then
+			--		mu_cur <= mu_ext(N-2);
+			--	elsif underflow(N-3) = '1' then
+			--		mu_cur <= mu_ext(N-3);
+			--	elsif underflow(N-4) = '1' then
+			--		mu_cur <= mu_ext(N-4);
+			--	elsif underflow(N-5) = '1' then
+			--		mu_cur <= mu_ext(N-5);
+			--	elsif underflow(N-6) = '1' then
+			--		mu_cur <= mu_ext(N-6);
+			--	elsif underflow(N-7) = '1' then
+			--		mu_cur <= mu_ext(N-7);
+			--	elsif underflow(N-8) = '1' then
+			--		mu_cur <= mu_ext(N-8);
+			--	elsif underflow(N-9) = '1' then
+			--		mu_cur <= mu_ext(N-9);
+			--	elsif underflow(N-10) = '1' then
+			--		mu_cur <= mu_ext(N-10);
+			--	elsif underflow(N-11) = '1' then
+			--		mu_cur <= mu_ext(N-11);
+			--	elsif underflow(N-12) = '1' then
+			--		mu_cur <= mu_ext(N-12);
+			--	elsif underflow(N-13) = '1' then
+			--		mu_cur <= mu_ext(N-13);
+			--	elsif underflow(N-14) = '1' then
+			--		mu_cur <= mu_ext(N-14);
+			--	elsif underflow(N-15) = '1' then
+			--		mu_cur <= mu_ext(N-15);
+			--	elsif underflow(N-16) = '1' then
+			--		mu_cur <= mu_ext(N-16);
+			--	end if;
 			end if;
 		end if;
 	end process;
