@@ -61,7 +61,8 @@ architecture rtl of p_tll is
 	signal diff			: unsigned_array_16(0 to N-1):=(others=>(others=>'0'));
 	signal mu_ext 		: std_logic_array_18(0 to N-1):=(others=>(others=>'0'));
 	signal one_minus_mu	: signed_array_18(0 to N-1):=(others=>(others=>'0'));
-	signal mu_cur_i 		: std_logic_vector(17 downto 0):=(others=>'0');
+	signal mu_cur_reg   : std_logic_vector(17 downto 0):=(others=>'0');
+	signal mu_cur_next 	: std_logic_vector(17 downto 0):=(others=>'0');
 	signal mulI0		: signed_array_26(0 to N-1):=(others=>(others=>'0'));
 	signal mulQ0		: signed_array_26(0 to N-1):=(others=>(others=>'0'));
 	signal mulI1		: signed_array_26(0 to N-1):=(others=>(others=>'0'));
@@ -88,7 +89,7 @@ architecture rtl of p_tll is
 	signal v			: signed(31 downto 0):=(others=>'0');
 	signal vi			: signed(31 downto 0):=(others=>'0');
 	attribute MARK_DEBUG : string;
-	attribute MARK_DEBUG of mu_cur_i : signal is "TRUE";
+	attribute MARK_DEBUG of mu_cur_reg : signal is "TRUE";
 begin       
 
 	-- calculate diff for all branches
@@ -154,7 +155,7 @@ begin
 
 	-- interpolation 
 	process(sys_clk)
-        signal mu_tmp 		: std_logic_vector(17 downto 0):=(others=>'0');
+        variable mu_tmp 		: std_logic_vector(17 downto 0):=(others=>'0');
 	begin
 		if rising_edge(sys_clk) then
 			-- Q8.16 + Q8.16 = Q9.16
