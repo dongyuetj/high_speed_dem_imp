@@ -30,18 +30,18 @@ architecture rtl of p_tll is
 
 	constant ONE 		: unsigned(15 downto 0):= (others=>'1');
 	constant HALF_ONE 	: unsigned(15 downto 0):= to_unsigned(2**15,16);
-	-- -3072/2^16, Q0.16
-	constant K1 		: signed(16 downto 0):= to_signed(-3072,17);
-	-- -32/2^16, Q0.16
-	constant K2 		: signed(16 downto 0):= to_signed(-32,17);
-	-- 128, Q15.16
-	constant V_MAX 		: signed(31 downto 0):= to_signed(2**23,32);
-	-- -128, Q15.16
-	constant V_MIN 		: signed(31 downto 0):=  to_signed(-2**23,32);
-	-- 0.25, Q15.16
-	constant VI_MAX 	: signed(31 downto 0):= to_signed(2**14,32);
-	-- -0.25, Q15.16
-	constant VI_MIN 	: signed(31 downto 0):= to_signed(-2**14,32);
+	-- -0.1814 * 2^17
+	constant K1 		: signed(17 downto 0):= to_signed(-23773,18);
+	-- -6.0458e-04 * 2^17 
+	constant K2 		: signed(17 downto 0):= to_signed(-79,18);
+--	-- 128, Q15.16
+--	constant V_MAX 		: signed(31 downto 0):= to_signed(2**23,32);
+--	-- -128, Q15.16
+--	constant V_MIN 		: signed(31 downto 0):=  to_signed(-2**23,32);
+--	-- 0.25, Q15.16
+--	constant VI_MAX 	: signed(31 downto 0):= to_signed(2**14,32);
+--	-- -0.25, Q15.16
+--	constant VI_MIN 	: signed(31 downto 0):= to_signed(-2**14,32);
 	-- 4095
 	constant E_MAX 		: signed(12 downto 0):=  to_signed(4095,13);
 	-- -4096
@@ -57,10 +57,11 @@ architecture rtl of p_tll is
 	signal W 			: unsigned(15 downto 0):= to_unsigned(2**15,16);
 	signal underflow 	: std_logic_vector(0 to N-1):=(others=>'0');
 	signal diff			: unsigned_array_16(0 to N-1):=(others=>(others=>'0'));
-	signal mu_ext 		: std_logic_array_18(0 to N-1):=(others=>(others=>'0'));
-	signal one_minus_mu	: signed_array_18(0 to N-1):=(others=>(others=>'0'));
-	signal mu_cur_reg   : std_logic_vector(17 downto 0):=(others=>'0');
-	signal mu_cur_next 	: std_logic_vector(17 downto 0):=(others=>'0');
+	signal mu_ext 		: signed_array_18(0 to N-1):=(others=>(others=>'0'));
+	signal one_minus_mu	: signed_array_18(0 to N-1):=(others=>"010000000000000000");
+	signal mu_ext_tmp 		: signed_array_18(0 to N-1):=(others=>(others=>'0'));
+	signal one_minus_mu_tmp	: signed_array_18(0 to N-1):=(others=>(others=>'0'));
+	signal mu_cur       : signed(17 downto 0):=(others=>'0');
 	signal mulI0		: signed_array_26(0 to N-1):=(others=>(others=>'0'));
 	signal mulQ0		: signed_array_26(0 to N-1):=(others=>(others=>'0'));
 	signal mulI1		: signed_array_26(0 to N-1):=(others=>(others=>'0'));
@@ -80,11 +81,12 @@ architecture rtl of p_tll is
 	signal e_add1		: signed_array_16(0 to 1):=(others=>(others=>'0'));
 	signal e_total 		: signed(16 downto 0):=(others=>'0');
 	signal e_in 		: signed(13 downto 0):=(others=>'0');
-	signal vp    	: signed(31 downto 0):=(others=>'0');
-	signal v			: signed(31 downto 0):=(others=>'0');
+	signal vp    	    : signed(31 downto 0):=(others=>'0');
 	signal vi			: signed(31 downto 0):=(others=>'0');
+	signal v			: signed(31 downto 0):=(others=>'0');
+	signal v_t			: std_logic_vector(15 downto 0):=(others=>'0');
 	attribute MARK_DEBUG : string;
-	attribute MARK_DEBUG of mu_cur_reg : signal is "TRUE";
+	attribute MARK_DEBUG of mu_cur : signal is "TRUE";
 begin       
 
     -- pipeline vld
@@ -123,8 +125,8 @@ begin
                 for ii in 0 to N-1 loop
                     mulI0(ii) <= one_minus_mu(ii) * signed(data_i_reg(ii));
                     mulQ0(ii) <= one_minus_mu(ii) * signed(data_q_reg(ii));
-                    mulI1(ii) <= signed(mu_ext(ii)) * signed(data_i_reg(ii+1));
-                    mulQ1(ii) <= signed(mu_ext(ii)) * signed(data_q_reg(ii+1));
+                    mulI1(ii) <= mu_ext(ii) * signed(data_i_reg(ii+1));
+                    mulQ1(ii) <= mu_ext(ii) * signed(data_q_reg(ii+1));
                 end loop;
             end if;
 			-- Q8.16 + Q8.16 = Q9.16
@@ -208,18 +210,19 @@ begin
 	end process;
 
     -- error constraint
+    -- make equivalent to matlab
 	process(sys_clk)
 	begin
 		if rising_edge(sys_clk) then
 			if iq_vld_d(5) = '1' then
 				for ii in 0 to N-1 loop
-					if signed(e_vec(ii)(32 downto 12)) > signed(E_MAX) then
-						e_vec_int(ii) <= E_MAX; -- 4095
-					elsif signed(e_vec(ii)(32 downto 12)) < signed(E_MIN) then
-						e_vec_int(ii) <= E_MIN; -- -4096
-					else
+			--		if signed(e_vec(ii)(32 downto 12)) > signed(E_MAX) then
+			--			e_vec_int(ii) <= E_MAX; -- 4095
+			--		elsif signed(e_vec(ii)(32 downto 12)) < signed(E_MIN) then
+			--			e_vec_int(ii) <= E_MIN; -- -4096
+			--		else
 						e_vec_int(ii) <= e_vec(ii)(24 downto 12);
-					end if;
+			--		end if;
 				end loop;
 			end if;
 		end if;
@@ -227,9 +230,10 @@ begin
 
 	-- parallel adder 
 	-- Q20.12 -> Q12.0
-	-- Q12.0 + Q12.0 -> Q13.0
-	-- Q12.0 + Q12.0 -> Q14.0
-	-- Q12.0 + Q12.0 -> Q15.0
+	-- 16 to 8: Q12.0 + Q12.0 -> Q13.0
+	-- 8 to 4 : Q13.0 + Q13.0 -> Q14.0
+	-- 4 to 2 : Q14.0 + Q14.0 -> Q15.0
+    -- 2 to 1 : Q15.0 + Q15.0 -> Q16.0
 
 	process(sys_clk)
 	begin
@@ -246,20 +250,23 @@ begin
 
 	e_in <= e_total(e_total'high downto 3);
 
-	--  loop filter, Q15.0 / 4 = Q13.0
-	-- Q13.0 * Q0.16 = Q13.16 (two signed bits) 
+	-- e_in, Q16.0 / 8 = Q13.0
+	-- Q13.0 * Q0.17 = Q13.17 (two signed bits) 
 	process(sys_clk)
 	begin
 		if rising_edge(sys_clk) then
 			if rst_n = '0' then
-				vi <= (others=>'0');
 				vp <= (others=>'0');
+				vi <= (others=>'0');
 				v  <= (others=>'0');
 			else
 				if iq_vld_d(8) = '1' then
-					vi <= vi - (resize(e_in, vi'length) sll 5);
-					vp <=  -(resize(e_in, vp'length) sll 11) - (resize(e_in, vp'length) sll 10); 
+			--		vp <=  -(resize(e_in, vp'length) sll 11) - (resize(e_in, vp'length) sll 10); 
+			--		vi <= vi - (resize(e_in, vi'length) sll 5);
+                    vp <= K1 * e_in; 
+                    vi <= vi + K2 * e_in;
 				end if;
+                -- Q13.17 + Q13.17 = Q14.17
 				if iq_vld_d(9) = '1' then
 					v <= vi + vp;
 				end if;
@@ -271,15 +278,19 @@ begin
 	loop_dout <= std_logic_vector(v) ;
 
 	-- update W, loop gain 2^16
-	-- Q8.32, only keep the fractional part.
-	-- 2 signed bits, 2 integer bits, 32 fractional bits
+    -- fraction part [16:0]
+    -- integer part [30:17]
+    -- signed [31]
+
+    v_t <= std_logic_vector(resize(v(31 downto 17),16));
+
 	process(sys_clk)
 	begin
 		if rising_edge(sys_clk) then
 			if rst_n = '0' then
 				W <= HALF_ONE ;
 			elsif iq_vld_d(10) = '1' then
-				W <= HALF_ONE + unsigned(v(31 downto 16));
+				W <= HALF_ONE + unsigned(v_t);
 			end if;
 		end if;
 	end process;
@@ -314,41 +325,78 @@ begin
 
 	-- update mu
 	process(sys_clk)
-        variable mu_tmp 		: std_logic_vector(17 downto 0):=(others=>'0');
+        variable mu_val      : signed(17 downto 0);
+        variable one_mu_val  : signed(17 downto 0);
 	begin
 		if rising_edge(sys_clk) then
 			if rst_n = '0' then
-				mu_cur_reg <= std_logic_vector(to_unsigned(2**15,18));
+				mu_cur <= (others=>'0');
 			else
-                -- update mu when underflow
                 if iq_vld_d(12) = '1' then
-                    mu_tmp := mu_cur_reg;
+                    -- update mu when underflow
                     for ii in 0 to N - 1 loop
                         if diff(ii) < W then
                             underflow(ii) <= '1';
-                            -- unsigned 16 was extended to Q1.16 by adding a signed bit and an integer bit
-                            mu_ext(ii)        <= std_logic_vector('0' & diff(ii) & '0');
-                            one_minus_mu(ii)  <= ONE_Q1p16 - signed('0' & diff(ii) & '0');
-                            mu_tmp            := std_logic_vector('0' & diff(ii) & '0');
                         else
                             underflow(ii) <= '0';
-                            mu_ext(ii)        <= mu_tmp;
-                            one_minus_mu(ii)  <= ONE_Q1p16 - signed(mu_tmp);
                         end if;
+                        -- calculate mu and 1-mu no matter underflow
+                        -- unsigned 16 was extended to Q1.16 by adding a signed bit and an integer bit
+                        mu_ext_tmp(ii)        <= signed('0' & diff(ii) & '0');
+                        one_minus_mu_tmp(ii)  <= ONE_Q1p16 - signed('0' & diff(ii) & '0');
+                        -- init mu and 1-mu with mu_cur
+                        mu_ext(ii)        <= mu_cur;
+                        one_minus_mu(ii)  <= ONE_Q1p16 - mu_cur;
                     end loop;
-                    mu_cur_next <= mu_tmp;
                 end if;
                 if iq_vld_d(13) = '1' then
-                    mu_cur_reg <= mu_cur_next;
+                    for jj in 0 to N-1 loop
+                        if underflow(jj) = '1' then
+                            mu_val     := mu_ext_tmp(jj);
+                            one_mu_val := one_minus_mu_tmp(jj);
+                        end if;
+                        mu_ext(jj)       <= mu_val;
+                        one_minus_mu(jj) <= one_mu_val;
+                    end loop;
+                end if;
+                -- store last valid mu
+                if iq_vld_d(14) = '1' then
+                    if underflow(15) = '1' then
+                        mu_cur <= mu_ext(15);
+                    elsif underflow(14) = '1' then
+                        mu_cur <= mu_ext(14);
+                    elsif underflow(13) = '1' then
+                        mu_cur <= mu_ext(13);
+                    elsif underflow(12) = '1' then
+                        mu_cur <= mu_ext(12);
+                    elsif underflow(11) = '1' then
+                        mu_cur <= mu_ext(11);
+                    elsif underflow(10) = '1' then
+                        mu_cur <= mu_ext(10);
+                    elsif underflow(9) = '1' then
+                        mu_cur <= mu_ext(9);
+                    elsif underflow(8) = '1' then
+                        mu_cur <= mu_ext(8);
+                    elsif underflow(7) = '1' then
+                        mu_cur <= mu_ext(7);
+                    elsif underflow(6) = '1' then
+                        mu_cur <= mu_ext(6);
+                    elsif underflow(5) = '1' then
+                        mu_cur <= mu_ext(5);
+                    elsif underflow(4) = '1' then
+                        mu_cur <= mu_ext(4);
+                    elsif underflow(3) = '1' then
+                        mu_cur <= mu_ext(3);
+                    elsif underflow(2) = '1' then
+                        mu_cur <= mu_ext(2);
+                    elsif underflow(1) = '1' then
+                        mu_cur <= mu_ext(1);
+                    elsif underflow(0) = '1' then
+                        mu_cur <= mu_ext(0);
+                    end if;
                 end if;
 			end if;
 		end if;
 	end process;
-
-
-
-
-
-
 
 end rtl;

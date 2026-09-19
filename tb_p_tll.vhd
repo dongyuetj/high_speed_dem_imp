@@ -25,11 +25,13 @@ architecture sim of tb_tb_p_tll is
         sys_clk : in  std_logic;
         rst_n   : in  std_logic;
 		iq_vld : in std_logic;
-		data_i : in std_logic_array_8(N-1 downto 0);
-		data_q : in std_logic_array_8(N-1 downto 0);
-		symb_en : out std_logic_vector(N-1 downto 0):=(others=>'0');
-		symb_i : out std_logic_array_16(N-1 downto 0):=(others=>(others=>'0'));
-		symb_q : out std_logic_array_16(N-1 downto 0):=(others=>(others=>'0'))
+		data_i : in std_logic_array_8(0 to N-1);
+		data_q : in std_logic_array_8(0 to N-1);
+		symb_en : out std_logic_vector(0 to N-1):=(others=>'0');
+		symb_i : out std_logic_array_16(0 to N-1):=(others=>(others=>'0'));
+		symb_q : out std_logic_array_16(0 to N-1):=(others=>(others=>'0'));
+		loop_out_vld : out std_logic:='0';
+		loop_dout	 : out std_logic_vector(31 downto 0):=(others=>'0')
     );
 	end component;
 
@@ -49,40 +51,40 @@ architecture sim of tb_tb_p_tll is
 	signal iq_vld_d  	: std_logic:='0';
 
     -- File I/O
-    file rec_r_i0 : text open read_mode  is "D:\projects\46_high_speed_dem\sim\rd_data_i0.txt";
-    file rec_r_q0 : text open read_mode  is "D:\projects\46_high_speed_dem\sim\rd_data_q0.txt";
-    file rec_r_i1 : text open read_mode  is "D:\projects\46_high_speed_dem\sim\rd_data_i1.txt";
-    file rec_r_q1 : text open read_mode  is "D:\projects\46_high_speed_dem\sim\rd_data_q1.txt";
-    file rec_r_i2 : text open read_mode  is "D:\projects\46_high_speed_dem\sim\rd_data_i2.txt";
-    file rec_r_q2 : text open read_mode  is "D:\projects\46_high_speed_dem\sim\rd_data_q2.txt";
-    file rec_r_i3 : text open read_mode  is "D:\projects\46_high_speed_dem\sim\rd_data_i3.txt";
-    file rec_r_q3 : text open read_mode  is "D:\projects\46_high_speed_dem\sim\rd_data_q3.txt";
-    file rec_r_i4 : text open read_mode  is "D:\projects\46_high_speed_dem\sim\rd_data_i4.txt";
-    file rec_r_q4 : text open read_mode  is "D:\projects\46_high_speed_dem\sim\rd_data_q4.txt";
-    file rec_r_i5 : text open read_mode  is "D:\projects\46_high_speed_dem\sim\rd_data_i5.txt";
-    file rec_r_q5 : text open read_mode  is "D:\projects\46_high_speed_dem\sim\rd_data_q5.txt";
-    file rec_r_i6 : text open read_mode  is "D:\projects\46_high_speed_dem\sim\rd_data_i6.txt";
-    file rec_r_q6 : text open read_mode  is "D:\projects\46_high_speed_dem\sim\rd_data_q6.txt";
-    file rec_r_i7 : text open read_mode  is "D:\projects\46_high_speed_dem\sim\rd_data_i7.txt";
-    file rec_r_q7 : text open read_mode  is "D:\projects\46_high_speed_dem\sim\rd_data_q7.txt";
-    file rec_r_i8 : text open read_mode  is "D:\projects\46_high_speed_dem\sim\rd_data_i8.txt";
-    file rec_r_q8 : text open read_mode  is "D:\projects\46_high_speed_dem\sim\rd_data_q8.txt";
-    file rec_r_i9 : text open read_mode  is "D:\projects\46_high_speed_dem\sim\rd_data_i9.txt";
-    file rec_r_q9 : text open read_mode  is "D:\projects\46_high_speed_dem\sim\rd_data_q9.txt";
-    file rec_r_i10 : text open read_mode  is "D:\projects\46_high_speed_dem\sim\rd_data_i10.txt";
-    file rec_r_q10 : text open read_mode  is "D:\projects\46_high_speed_dem\sim\rd_data_q10.txt";
-    file rec_r_i11 : text open read_mode  is "D:\projects\46_high_speed_dem\sim\rd_data_i11.txt";
-    file rec_r_q11 : text open read_mode  is "D:\projects\46_high_speed_dem\sim\rd_data_q11.txt";
-    file rec_r_i12 : text open read_mode  is "D:\projects\46_high_speed_dem\sim\rd_data_i12.txt";
-    file rec_r_q12 : text open read_mode  is "D:\projects\46_high_speed_dem\sim\rd_data_q12.txt";
-    file rec_r_i13 : text open read_mode  is "D:\projects\46_high_speed_dem\sim\rd_data_i13.txt";
-    file rec_r_q13 : text open read_mode  is "D:\projects\46_high_speed_dem\sim\rd_data_q13.txt";
-    file rec_r_i14 : text open read_mode  is "D:\projects\46_high_speed_dem\sim\rd_data_i14.txt";
-    file rec_r_q14 : text open read_mode  is "D:\projects\46_high_speed_dem\sim\rd_data_q14.txt";
-    file rec_r_i15 : text open read_mode  is "D:\projects\46_high_speed_dem\sim\rd_data_i15.txt";
-    file rec_r_q15 : text open read_mode  is "D:\projects\46_high_speed_dem\sim\rd_data_q15.txt";
-	file rec_w_i : text open write_mode is "D:\projects\46_high_speed_dem\sim\da_data_i.txt";
-	file rec_w_q : text open write_mode is "D:\projects\46_high_speed_dem\sim\da_data_q.txt";
+    file rec_r_i0 : text open read_mode  is "agc_i0.txt";
+    file rec_r_q0 : text open read_mode  is "agc_q0.txt";
+    file rec_r_i1 : text open read_mode  is "agc_i1.txt";
+    file rec_r_q1 : text open read_mode  is "agc_q1.txt";
+    file rec_r_i2 : text open read_mode  is "agc_i2.txt";
+    file rec_r_q2 : text open read_mode  is "agc_q2.txt";
+    file rec_r_i3 : text open read_mode  is "agc_i3.txt";
+    file rec_r_q3 : text open read_mode  is "agc_q3.txt";
+    file rec_r_i4 : text open read_mode  is "agc_i4.txt";
+    file rec_r_q4 : text open read_mode  is "agc_q4.txt";
+    file rec_r_i5 : text open read_mode  is "agc_i5.txt";
+    file rec_r_q5 : text open read_mode  is "agc_q5.txt";
+    file rec_r_i6 : text open read_mode  is "agc_i6.txt";
+    file rec_r_q6 : text open read_mode  is "agc_q6.txt";
+    file rec_r_i7 : text open read_mode  is "agc_i7.txt";
+    file rec_r_q7 : text open read_mode  is "agc_q7.txt";
+    file rec_r_i8 : text open read_mode  is "agc_i8.txt";
+    file rec_r_q8 : text open read_mode  is "agc_q8.txt";
+    file rec_r_i9 : text open read_mode  is "agc_i9.txt";
+    file rec_r_q9 : text open read_mode  is "agc_q9.txt";
+    file rec_r_i10 : text open read_mode  is "agc_i10.txt";
+    file rec_r_q10 : text open read_mode  is "agc_q10.txt";
+    file rec_r_i11 : text open read_mode  is "agc_i11.txt";
+    file rec_r_q11 : text open read_mode  is "agc_q11.txt";
+    file rec_r_i12 : text open read_mode  is "agc_i12.txt";
+    file rec_r_q12 : text open read_mode  is "agc_q12.txt";
+    file rec_r_i13 : text open read_mode  is "agc_i13.txt";
+    file rec_r_q13 : text open read_mode  is "agc_q13.txt";
+    file rec_r_i14 : text open read_mode  is "agc_i14.txt";
+    file rec_r_q14 : text open read_mode  is "agc_q14.txt";
+    file rec_r_i15 : text open read_mode  is "agc_i15.txt";
+    file rec_r_q15 : text open read_mode  is "agc_q15.txt";
+	file rec_w_i : text open write_mode is "symb_i.txt";
+	file rec_w_q : text open write_mode is "symb_q.txt";
 
 begin
 
