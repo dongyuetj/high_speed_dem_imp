@@ -48,22 +48,21 @@ architecture rtl of p_tll is
 	constant E_MAX 		: signed(12 downto 0):=  to_signed(4095,13);
 	-- -4096
 	constant E_MIN 		: signed(12 downto 0):= to_signed(-4096,13);
-	-- 1, Q1.16
-	constant ONE_Q1p16 	: signed(17 downto 0):= to_signed(2**16,18);
 
-	signal first_data_in_flag : std_logic:='0';
 	signal iq_vld_d		: std_logic_vector(18 downto 0):=(others=>'0');
 	signal data_i_reg   : std_logic_array_8(0 to N):=(others=>(others=>'0'));
 	signal data_q_reg 	: std_logic_array_8(0 to N):=(others=>(others=>'0'));
 	signal CNT  		: unsigned(15 downto 0):= (others=>'0');
-	signal W 			: unsigned(15 downto 0):= to_unsigned(2**15,16);
+	signal W 			: unsigned(15 downto 0):= HALF_ONE;
 	signal underflow 	: std_logic_vector(0 to N-1):="0101010101010101";
+	signal underflow_hist 	: std_logic_vector(0 to N):="10101010101010101";
+	signal e_vld     	: std_logic_vector(0 to N-1):="0101010101010101";
 	signal diff			: unsigned_array_16(0 to N-1):=(others=>(others=>'0'));
-	signal mu_ext 		: signed_array_18(0 to N-1):=(others=>(others=>'0'));
-	signal one_minus_mu	: signed_array_18(0 to N-1):=(others=>"010000000000000000");
-	signal mu_ext_tmp 		: signed_array_18(0 to N-1):=(others=>(others=>'0'));
-	signal one_minus_mu_tmp	: signed_array_18(0 to N-1):=(others=>(others=>'0'));
-	signal mu_cur       : signed(17 downto 0):=(others=>'0');
+	signal mu 		    : unsigned_array_16(0 to N-1):=(others=>(others=>'0'));
+	signal one_minus_mu	: unsigned_array_16(0 to N-1):=(others=>(others=>'1'));
+	signal mu_tmp 		: unsigned_array_16(0 to N-1):=(others=>(others=>'0'));
+	signal one_minus_mu_tmp	: unsigned_array_16(0 to N-1):=(others=>(others=>'0'));
+	signal mu_cur       : unsigned(15 downto 0):=(others=>'0');
 	signal mulI0		: signed_array_26(0 to N-1):=(others=>(others=>'0'));
 	signal mulQ0		: signed_array_26(0 to N-1):=(others=>(others=>'0'));
 	signal mulI1		: signed_array_26(0 to N-1):=(others=>(others=>'0'));
@@ -78,7 +77,7 @@ architecture rtl of p_tll is
 	signal diffQ 		: signed_array_17(0 to N-1):=(others=>(others=>'0'));
 	signal mulI 		: signed_array_33(0 to N-1):=(others=>(others=>'0'));
 	signal mulQ 		: signed_array_33(0 to N-1):=(others=>(others=>'0'));
-	signal e_vec 		: signed_array_33(0 to N-1):=(others=>(others=>'0'));
+	signal e_vec 		: signed_array_34(0 to N-1):=(others=>(others=>'0'));
 	signal e_vec_int	: signed_array_16(0 to N-1):=(others=>(others=>'0'));
 	signal e_add1		: signed_array_16(0 to 1):=(others=>(others=>'0'));
 	signal e_total 		: signed(16 downto 0):=(others=>'0');
@@ -87,6 +86,7 @@ architecture rtl of p_tll is
 	signal vi			: signed(31 downto 0):=(others=>'0');
 	signal v			: signed(31 downto 0):=(others=>'0');
 	signal v_t			: std_logic_vector(15 downto 0):=(others=>'0');
+    signal cnt_symb          : unsigned(15 downto 0):=(others=>'0');
 	attribute MARK_DEBUG : string;
 	attribute MARK_DEBUG of mu_cur : signal is "TRUE";
     file rec_w_err : text open write_mode is "err.txt";
@@ -129,10 +129,10 @@ begin
             -- Q1.16 * Q7.0 = Q8.16, 2 signed bits + 8 integer bits + 16 fractional bits
             if iq_vld_d(0) = '1' then
                 for ii in 0 to N-1 loop
-                    mulI0(ii) <= one_minus_mu(ii) * signed(data_i_reg(ii));
-                    mulQ0(ii) <= one_minus_mu(ii) * signed(data_q_reg(ii));
-                    mulI1(ii) <= mu_ext(ii) * signed(data_i_reg(ii+1));
-                    mulQ1(ii) <= mu_ext(ii) * signed(data_q_reg(ii+1));
+                    mulI0(ii) <= signed(resize(one_minus_mu(ii),18)) * signed(data_i_reg(ii));
+                    mulQ0(ii) <= signed(resize(one_minus_mu(ii),18)) * signed(data_q_reg(ii));
+                    mulI1(ii) <= signed(resize(mu(ii),18)) * signed(data_i_reg(ii+1));
+                    mulQ1(ii) <= signed(resize(mu(ii),18)) * signed(data_q_reg(ii+1));
                 end loop;
             end if;
 			-- Q8.16 + Q8.16 = Q9.16
@@ -196,13 +196,33 @@ begin
 			if iq_vld_d(4) = '1' then
 				for kk in 0 to N-1 loop
 					-- Q19.12 + Q19.12 = Q20.12
-                    e_vec(kk) <= mulI(kk) + mulQ(kk);
+                    e_vec(kk) <=resize(mulI(kk),34) + resize(mulQ(kk),34);
 				end loop;
+                   -- histBuffI(1) <= histBuffI(N+1);
+                   -- histBuffQ(1) <= histBuffQ(N+1);
+                   -- histBuffI(0) <= histBuffI(N);
+                   -- histBuffQ(0) <= histBuffQ(N);
                 -- store history samples
-				histBuffI(0) <= histBuffI(N);
-				histBuffQ(0) <= histBuffQ(N);
-				histBuffI(1) <= histBuffI(N+1);
-				histBuffQ(1) <= histBuffQ(N+1);
+                if underflow(N-1) = '0' and underflow(N-2) = '1' then
+                    histBuffI(1) <= histBuffI(N+1);
+                    histBuffQ(1) <= histBuffQ(N+1);
+                elsif underflow(N-1) = '1' and underflow(N-2) = '0' then
+                    histBuffI(1) <= histBuffI(N+1);
+                    histBuffQ(1) <= histBuffQ(N+1);
+                elsif underflow(N-1) = '1' and underflow(N-2) = '1' then
+                    histBuffI(1) <= (others=>'0');
+                    histBuffQ(1) <= (others=>'0');
+                end if;
+                if underflow(N-2) = '0' and underflow(N-3) = '1' then
+                    histBuffI(0) <= histBuffI(N);
+                    histBuffQ(0) <= histBuffQ(N);
+                elsif underflow(N-2) = '1' and underflow(N-3) = '0' then
+                    histBuffI(0) <= histBuffI(N);
+                    histBuffQ(0) <= histBuffQ(N);
+                elsif underflow(N-2) = '1' and underflow(N-3) = '1' then
+                    histBuffI(0) <= (others=>'0');
+                    histBuffQ(0) <= (others=>'0');
+                end if;
 			end if;
 		end if;
 	end process;
@@ -219,7 +239,7 @@ begin
 			--		elsif signed(e_vec(ii)(32 downto 12)) < signed(E_MIN) then
 			--			e_vec_int(ii) <= E_MIN; -- -4096
 			--		else
-                    if underflow(ii) = '1' then
+                    if e_vld(ii) = '1' then
 						e_vec_int(ii) <= e_vec(ii)(27 downto 12);
                     else
 						e_vec_int(ii) <= (others=>'0');
@@ -257,6 +277,7 @@ begin
     begin
         if rising_edge(sys_clk) then
             if iq_vld_d(8) = '1' then
+                cnt_symb <= cnt_symb + 1;
                 write(buf, to_integer(signed(e_in)));
                 writeline(rec_w_err, buf);
             end if;
@@ -361,74 +382,82 @@ begin
 
 	-- update mu
 	process(sys_clk)
-        variable mu_val      : signed(17 downto 0);
-        variable one_mu_val  : signed(17 downto 0);
+        variable mu_val      : unsigned(15 downto 0);
+        variable one_mu_val  : unsigned(15 downto 0);
 	begin
 		if rising_edge(sys_clk) then
 			if rst_n = '0' then
 				mu_cur <= (others=>'0');
 			else
                 if iq_vld_d(12) = '1' then
+                    underflow_hist(0) <= underflow(N-1);
                     -- update mu when underflow
                     for ii in 0 to N - 1 loop
                         if diff(ii) < W then
                             underflow(ii) <= '1';
+                            underflow_hist(ii+1) <= '1';
                         else
                             underflow(ii) <= '0';
+                            underflow_hist(ii+1) <= '0';
                         end if;
                         -- calculate mu and 1-mu no matter underflow
                         -- unsigned 16 was extended to Q1.16 by adding a signed bit and an integer bit
-                        mu_ext_tmp(ii)        <= signed('0' & diff(ii) & '0');
-                        one_minus_mu_tmp(ii)  <= ONE_Q1p16 - signed('0' & diff(ii) & '0');
+                        mu_tmp(ii)            <= unsigned(diff(ii)(14 downto 0)&'0');
+                        one_minus_mu_tmp(ii)  <= ONE - unsigned(diff(ii)(14 downto 0)&'0');
                         -- init mu and 1-mu with mu_cur
-                        mu_ext(ii)        <= mu_cur;
-                        one_minus_mu(ii)  <= ONE_Q1p16 - mu_cur;
+                        mu(ii)        <= mu_cur;
+                        one_minus_mu(ii)  <= ONE - mu_cur;
                     end loop;
                 end if;
                 if iq_vld_d(13) = '1' then
                     for jj in 0 to N-1 loop
                         if underflow(jj) = '1' then
-                            mu_val     := mu_ext_tmp(jj);
+                            mu_val     := mu_tmp(jj);
                             one_mu_val := one_minus_mu_tmp(jj);
                         end if;
-                        mu_ext(jj)       <= mu_val;
+                        mu(jj)       <= mu_val;
                         one_minus_mu(jj) <= one_mu_val;
+                        if underflow_hist(jj+1) = '1' and underflow_hist(jj) = '0' then
+                            e_vld(jj) <= '1';
+                        else
+                            e_vld(jj) <= '0';
+                        end if;
                     end loop;
                 end if;
                 -- store last valid mu
                 if iq_vld_d(14) = '1' then
                     if underflow(15) = '1' then
-                        mu_cur <= mu_ext(15);
+                        mu_cur <= mu(15);
                     elsif underflow(14) = '1' then
-                        mu_cur <= mu_ext(14);
+                        mu_cur <= mu(14);
                     elsif underflow(13) = '1' then
-                        mu_cur <= mu_ext(13);
+                        mu_cur <= mu(13);
                     elsif underflow(12) = '1' then
-                        mu_cur <= mu_ext(12);
+                        mu_cur <= mu(12);
                     elsif underflow(11) = '1' then
-                        mu_cur <= mu_ext(11);
+                        mu_cur <= mu(11);
                     elsif underflow(10) = '1' then
-                        mu_cur <= mu_ext(10);
+                        mu_cur <= mu(10);
                     elsif underflow(9) = '1' then
-                        mu_cur <= mu_ext(9);
+                        mu_cur <= mu(9);
                     elsif underflow(8) = '1' then
-                        mu_cur <= mu_ext(8);
+                        mu_cur <= mu(8);
                     elsif underflow(7) = '1' then
-                        mu_cur <= mu_ext(7);
+                        mu_cur <= mu(7);
                     elsif underflow(6) = '1' then
-                        mu_cur <= mu_ext(6);
+                        mu_cur <= mu(6);
                     elsif underflow(5) = '1' then
-                        mu_cur <= mu_ext(5);
+                        mu_cur <= mu(5);
                     elsif underflow(4) = '1' then
-                        mu_cur <= mu_ext(4);
+                        mu_cur <= mu(4);
                     elsif underflow(3) = '1' then
-                        mu_cur <= mu_ext(3);
+                        mu_cur <= mu(3);
                     elsif underflow(2) = '1' then
-                        mu_cur <= mu_ext(2);
+                        mu_cur <= mu(2);
                     elsif underflow(1) = '1' then
-                        mu_cur <= mu_ext(1);
+                        mu_cur <= mu(1);
                     elsif underflow(0) = '1' then
-                        mu_cur <= mu_ext(0);
+                        mu_cur <= mu(0);
                     end if;
                 end if;
 			end if;
@@ -442,7 +471,7 @@ begin
         if rising_edge(sys_clk) then
             if iq_vld_d(14) = '1' then
                 for ii in 0 to N-1 loop
-                    write(buf, to_integer(mu_ext(ii)));
+                    write(buf, to_integer(mu(ii)));
                     writeline(rec_w_mu, buf);
                 end loop;
             end if;
