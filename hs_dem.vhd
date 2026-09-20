@@ -143,6 +143,8 @@ architecture rtl of hs_dem is
 	signal wave_in_valid 		: std_logic:='0';
 	signal wave_in_i 			: std_logic_array_16(0 to N-1):=(others=>(others=>'0'));
 	signal wave_in_q			: std_logic_array_16(0 to N-1):=(others=>(others=>'0'));
+	signal wave_in_i_reg 			: std_logic_array_16(0 to N-1):=(others=>(others=>'0'));
+	signal wave_in_q_reg			: std_logic_array_16(0 to N-1):=(others=>(others=>'0'));
 	signal wave_out_valid 		: std_logic:='0';
 	signal wave_out_i 			: std_logic_array_16(0 to N-1):=(others=>(others=>'0'));
 	signal wave_out_q 			: std_logic_array_16(0 to N-1):=(others=>(others=>'0'));
@@ -532,17 +534,20 @@ begin
 			elsif data_vld = '1' then
 				if cnt_n = N-1 then
 					cnt_n <= 0;
-					wave_in_valid <= '1';
 				else
 					cnt_n <= cnt_n + 1;
-					wave_in_valid <= '0'; 
 				end if;
-				wave_in_i(N-1) <= data0_i;
-				wave_in_q(N-1) <= data0_q;
-				for ii in N-2 downto 0 loop
-					wave_in_i(ii) <= wave_in_i(ii+1);
-					wave_in_q(ii) <= wave_in_q(ii+1);
-				end loop;
+                wave_in_i_reg(cnt_n) <= data0_i;
+                wave_in_q_reg(cnt_n) <= data0_q;
+                if cnt_n = 0 then
+                    wave_in_valid <= '1';
+                    for jj in 0 to N-1 loop
+                        wave_in_i(jj) <= wave_in_i_reg(jj);
+                        wave_in_q(jj) <= wave_in_q_reg(jj);
+                    end loop;
+                else
+                    wave_in_valid <= '0';
+                end if;
 			else
 				cnt_n <= 0;
 				wave_in_valid <= '0';
@@ -552,22 +557,26 @@ begin
 		end if;
 	end process;
 
-	u_agc: p_agc
-	generic map( N => N)
-	port map(
-			sys_clk			=> 	sys_clk,
-			aresetn 		=> 	rst_n_agc,
-			log_ref  		=> 	log_ref,
-			wave_in_valid 	=>  wave_in_valid,
-			wave_in_i 		=>  wave_in_i,	
-			wave_in_q		=>  wave_in_q,
-			wave_out_valid 	=> 	wave_out_valid,
-			wave_out_i 		=> 	wave_out_i,
-			wave_out_q 		=> 	wave_out_q,
-			power_out_o 	=> 	power_out,
-			exp_gain_o 		=> 	exp_gain,
-			agc_error 		=>  agc_error	
-		);
+--	u_agc: p_agc
+--	generic map( N => N)
+--	port map(
+--			sys_clk			=> 	sys_clk,
+--			aresetn 		=> 	rst_n_agc,
+--			log_ref  		=> 	log_ref,
+--			wave_in_valid 	=>  wave_in_valid,
+--			wave_in_i 		=>  wave_in_i,	
+--			wave_in_q		=>  wave_in_q,
+--			wave_out_valid 	=> 	wave_out_valid,
+--			wave_out_i 		=> 	wave_out_i,
+--			wave_out_q 		=> 	wave_out_q,
+--			power_out_o 	=> 	power_out,
+--			exp_gain_o 		=> 	exp_gain,
+--			agc_error 		=>  agc_error	
+--		);
+
+    wave_out_valid 	<= wave_in_valid 		;
+    wave_out_i 		<= wave_in_i 			;
+    wave_out_q 		<= wave_in_q			;
 
 	process(sys_clk)
 	begin

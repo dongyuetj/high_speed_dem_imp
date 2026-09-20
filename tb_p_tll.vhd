@@ -713,7 +713,7 @@ begin
         variable buf : line;
     begin
         if rising_edge(sys_clk) then
-			for ii in 0 to 7 loop
+			for ii in 0 to 15 loop
 				if symb_en(ii) = '1' then
 					write(buf, to_integer(signed(symb_i(ii))));
 					writeline(rec_w_i, buf);
@@ -729,7 +729,7 @@ begin
         variable buf : line;
     begin
         if rising_edge(sys_clk) then
-			for ii in 0 to 7 loop
+			for ii in 0 to 15 loop
 				if symb_en(ii) = '1' then
 					write(buf, to_integer(signed(symb_q(ii))));
 					writeline(rec_w_q, buf);
