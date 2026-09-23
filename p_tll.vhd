@@ -65,7 +65,6 @@ architecture rtl of p_tll is
 	signal Wx15 		: unsigned(15 downto 0):= (others=>'0');
 	signal Wx16 		: unsigned(15 downto 0):= (others=>'0');
 	signal mu_step 		: unsigned(15 downto 0):= (others=>'0');
-	signal underflow 	: std_logic_vector(0 to N-1):="0101010101010101";
 	signal underflow_hist 	: std_logic_vector(0 to N):="10101010101010101";
 	signal e_vld     	: std_logic_vector(0 to N-1):="0101010101010101";
 	signal diff			: unsigned_array_16(0 to N-1):=(others=>(others=>'0'));
@@ -175,7 +174,7 @@ begin
 			symb_en <= (others => '0');
 			for i in 0 to N-1 loop
 				if iq_vld_d(2+i) = '1' then
-					if underflow(i) = '1' then
+					if underflow_hist(i+1) = '1' then
 						symb_en(i) <= '1';
 						symb_i(i)  <= std_logic_vector(xI_t(i));
 						symb_q(i)  <= std_logic_vector(xQ_t(i));
@@ -229,22 +228,22 @@ begin
                    -- histBuffI(0) <= histBuffI(N);
                    -- histBuffQ(0) <= histBuffQ(N);
                 -- store history samples
-                if underflow(N-1) = '0' and underflow(N-2) = '1' then
+                if underflow_hist(N) = '0' and underflow_hist(N-1) = '1' then
                     histBuffI(1) <= histBuffI(N+1);
                     histBuffQ(1) <= histBuffQ(N+1);
                     histBuffI(0) <= histBuffI(N);
                     histBuffQ(0) <= histBuffQ(N);
-                elsif underflow(N-1) = '1' and underflow(N-2) = '0' then
+                elsif underflow_hist(N) = '1' and underflow_hist(N-1) = '0' then
                     histBuffI(1) <= histBuffI(N+1);
                     histBuffQ(1) <= histBuffQ(N+1);
                     histBuffI(0) <= histBuffI(N);
                     histBuffQ(0) <= histBuffQ(N);
-                elsif underflow(N-1) = '1' and underflow(N-2) = '1' then
+                elsif underflow_hist(N) = '1' and underflow_hist(N-1) = '1' then
                     histBuffI(1) <= histBuffI(N+1);
                     histBuffQ(1) <= histBuffQ(N+1);
                     histBuffI(0) <= (others=>'0');
                     histBuffQ(0) <= (others=>'0');
-                elsif underflow(N-1) = '0' and underflow(N-2) = '0' then
+                elsif underflow_hist(N) = '0' and underflow_hist(N-1) = '0' then
                     histBuffI(1) <= histBuffI(N);
                     histBuffQ(1) <= histBuffQ(N);
                     histBuffI(0) <= histBuffI(N-1);
@@ -387,85 +386,85 @@ begin
 				CNT <= (others=>'0');
 			elsif iq_vld_d(11) = '1' then
                 diff(0)  <= CNT ;
-				if CNT >= Wx1 then
-					diff(1)  <= CNT - Wx1;
-				else
+				if CNT < Wx1 then
 					diff(1) <= CNT - Wx1 + ONE;
-				end if;
-				if CNT >= Wx2 then
-					diff(2)  <= CNT - Wx2;
 				else
+					diff(1)  <= CNT - Wx1;
+				end if;
+				if CNT < Wx2 then
 					diff(2)  <= CNT - Wx2 + ONE ;
-				end if;
-				if CNT >= Wx3 then
-					diff(3)  <= CNT - Wx3;
 				else
+					diff(2)  <= CNT - Wx2;
+				end if;
+				if CNT < Wx3 then
 					diff(3)  <= CNT - Wx3 + ONE ;
-				end if;
-				if CNT >= Wx4 then
-					diff(4)  <= CNT - Wx4 ;
 				else
+					diff(3)  <= CNT - Wx3;
+				end if;
+				if CNT < Wx4 then
 					diff(4)  <= CNT - Wx4 + ONE  ;
-				end if;
-				if CNT >= Wx5 then
-					diff(5)  <= CNT - Wx5 ;
 				else
+					diff(4)  <= CNT - Wx4 ;
+				end if;
+				if CNT < Wx5 then
 					diff(5)  <= CNT - Wx5 + ONE  ;
-				end if;
-				if CNT >= Wx6 then
-					diff(6)  <= CNT - Wx6 ;
 				else
+					diff(5)  <= CNT - Wx5 ;
+				end if;
+				if CNT < Wx6 then
 					diff(6)  <= CNT - Wx6 + ONE  ;
-				end if;
-				if CNT >= Wx7 then
-					diff(7)  <= CNT - Wx7 ;
 				else
+					diff(6)  <= CNT - Wx6 ;
+				end if;
+				if CNT < Wx7 then
 					diff(7)  <= CNT - Wx7 + ONE  ;
-				end if;
-				if CNT >= Wx8 then
-					diff(8)  <= CNT - Wx8 ;
 				else
+					diff(7)  <= CNT - Wx7 ;
+				end if;
+				if CNT < Wx8 then
 					diff(8)  <= CNT - Wx8 + ONE  ;
-				end if;
-				if CNT >= Wx9 then
-					diff(9)  <= CNT - Wx9 ;
 				else
+					diff(8)  <= CNT - Wx8 ;
+				end if;
+				if CNT < Wx9 then
 					diff(9)  <= CNT - Wx9 + ONE  ;
-				end if;
-				if CNT >= Wx10 then
-					diff(10) <= CNT - Wx10 ;
 				else
+					diff(9)  <= CNT - Wx9 ;
+				end if;
+				if CNT < Wx10 then
 					diff(10) <= CNT - Wx10 + ONE  ;
-				end if;
-				if CNT >= Wx11 then
-					diff(11) <= CNT - Wx11 ;
 				else
+					diff(10) <= CNT - Wx10 ;
+				end if;
+				if CNT < Wx11 then
 					diff(11) <= CNT - Wx11 + ONE  ;
-				end if;
-				if CNT >= Wx12 then
-					diff(12) <= CNT - Wx12 ;
 				else
+					diff(11) <= CNT - Wx11 ;
+				end if;
+				if CNT < Wx12 then
 					diff(12) <= CNT - Wx12 + ONE  ;
-				end if;
-				if CNT >= Wx13 then
-					diff(13) <= CNT - Wx13 ;
 				else
+					diff(12) <= CNT - Wx12 ;
+				end if;
+				if CNT < Wx13 then
 					diff(13) <= CNT - Wx13 + ONE  ;
-				end if;
-				if CNT >= Wx14 then
-					diff(14) <= CNT - Wx14 ;
 				else
+					diff(13) <= CNT - Wx13 ;
+				end if;
+				if CNT < Wx14 then
 					diff(14) <= CNT - Wx14 + ONE  ;
-				end if;
-				if CNT >= Wx15 then
-					diff(15) <= CNT - Wx15 ;
 				else
+					diff(14) <= CNT - Wx14 ;
+				end if;
+				if CNT < Wx15 then
 					diff(15) <= CNT - Wx15 + ONE  ;
-				end if;
-				if CNT >= Wx16 then
-					CNT <= CNT - Wx16;
 				else
+					diff(15) <= CNT - Wx15 ;
+				end if;
+				if CNT < Wx16 then
 					CNT <= CNT - Wx16 + ONE  ;
+				else
+					CNT <= CNT - Wx16;
 				end if;
             end if;
         end if;
@@ -484,14 +483,12 @@ begin
 				mu_cur <= (others=>'0');
 			else
                 if iq_vld_d(12) = '1' then
-                    underflow_hist(0) <= underflow(N-1);
-                    -- update mu when underflow
+                    underflow_hist(0) <= underflow_hist(N);
+                    -- update mu when underflow_hist
                     for ii in 0 to N - 1 loop
                         if diff(ii) < W then
-                            underflow(ii) <= '1';
                             underflow_hist(ii+1) <= '1';
                         else
-                            underflow(ii) <= '0';
                             underflow_hist(ii+1) <= '0';
                         end if;
                         -- calculate mu and 1-mu no matter underflow
@@ -526,7 +523,7 @@ begin
                 if iq_vld_d(13) = '1' then
 					mu_val     := mu_cur;
                     for jj in 0 to N-1 loop
-                        if underflow(jj) = '1' then
+                        if underflow_hist(jj+1) = '1' then
                             mu_val     := mu_tmp(jj);
                         end if;
                         mu(jj)       <= mu_val;
@@ -539,37 +536,37 @@ begin
                 end if;
                 -- store last valid mu
                 if iq_vld_d(14) = '1' then
-                    if underflow(15) = '1' then
+                    if underflow_hist(16) = '1' then
                         mu_cur <= mu(15);
-                    elsif underflow(14) = '1' then
+                    elsif underflow_hist(15) = '1' then
                         mu_cur <= mu(14);
-                    elsif underflow(13) = '1' then
+                    elsif underflow_hist(14) = '1' then
                         mu_cur <= mu(13);
-                    elsif underflow(12) = '1' then
+                    elsif underflow_hist(13) = '1' then
                         mu_cur <= mu(12);
-                    elsif underflow(11) = '1' then
+                    elsif underflow_hist(12) = '1' then
                         mu_cur <= mu(11);
-                    elsif underflow(10) = '1' then
+                    elsif underflow_hist(11) = '1' then
                         mu_cur <= mu(10);
-                    elsif underflow(9) = '1' then
+                    elsif underflow_hist(10) = '1' then
                         mu_cur <= mu(9);
-                    elsif underflow(8) = '1' then
+                    elsif underflow_hist(9) = '1' then
                         mu_cur <= mu(8);
-                    elsif underflow(7) = '1' then
+                    elsif underflow_hist(8) = '1' then
                         mu_cur <= mu(7);
-                    elsif underflow(6) = '1' then
+                    elsif underflow_hist(7) = '1' then
                         mu_cur <= mu(6);
-                    elsif underflow(5) = '1' then
+                    elsif underflow_hist(6) = '1' then
                         mu_cur <= mu(5);
-                    elsif underflow(4) = '1' then
+                    elsif underflow_hist(5) = '1' then
                         mu_cur <= mu(4);
-                    elsif underflow(3) = '1' then
+                    elsif underflow_hist(4) = '1' then
                         mu_cur <= mu(3);
-                    elsif underflow(2) = '1' then
+                    elsif underflow_hist(3) = '1' then
                         mu_cur <= mu(2);
-                    elsif underflow(1) = '1' then
+                    elsif underflow_hist(2) = '1' then
                         mu_cur <= mu(1);
-                    elsif underflow(0) = '1' then
+                    elsif underflow_hist(1) = '1' then
                         mu_cur <= mu(0);
                     end if;
 					for ii in 0 to N-1 loop
