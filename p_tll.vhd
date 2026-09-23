@@ -32,16 +32,16 @@ architecture rtl of p_tll is
 
 	constant ONE 		: unsigned(15 downto 0):= (others=>'0');
 	constant HALF_ONE 	: unsigned(15 downto 0):= to_unsigned(2**15,16);
---	-- locked
---	-- Q0.25
---	constant K1 		: signed(25 downto 0):= to_signed(-298137,26);
---	-- Q0.25
---	constant K2 		: signed(25 downto 0):= to_signed(-20,26);
-	-- catched
+	-- locked, BnTs = 0.0001
 	-- Q0.25
-	constant K1 		: signed(25 downto 0):= to_signed(-14858231,26);
+	constant K1 		: signed(25 downto 0):= to_signed(-298137,26);
 	-- Q0.25
-	constant K2 		: signed(25 downto 0):= to_signed(-49527,26);
+	constant K2 		: signed(25 downto 0):= to_signed(-20,26);
+--	-- catched, BnTs = 0.005
+--	-- Q0.25
+--	constant K1 		: signed(25 downto 0):= to_signed(-14858231,26);
+--	-- Q0.25
+--	constant K2 		: signed(25 downto 0):= to_signed(-49527,26);
 
 	signal iq_vld_d		: std_logic_vector(18 downto 0):=(others=>'0');
 	signal data_i_reg   : std_logic_array_8(0 to N):=(others=>(others=>'0'));
@@ -390,13 +390,13 @@ begin
                         end if;
                         -- calculate mu and 1-mu no matter underflow
                         -- unsigned 16 was extended to Q1.16 by adding a signed bit and an integer bit
-					--	if diff(ii)(15)='1' then -->=0.5
-					--		mu_tmp(ii)            <= ONE;
-					--		one_minus_mu_tmp(ii)  <= (others=>'0');
-					--	else
+						--if diff(ii)(15)='1' then -->=0.5
+						--	mu_tmp(ii)            <= ONE;
+						--	one_minus_mu_tmp(ii)  <= (others=>'0');
+						--else
 							mu_tmp(ii)            <= unsigned(diff(ii)(14 downto 0)&'0');
 							one_minus_mu_tmp(ii)  <= ONE - unsigned(diff(ii)(14 downto 0)&'0');
-					--	end if;
+						--end if;
                         -- init mu and 1-mu with mu_cur
                         mu(ii)        <= mu_cur;
                         one_minus_mu(ii)  <= ONE - mu_cur;
