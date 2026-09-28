@@ -6,8 +6,7 @@
 
 library IEEE;
 use IEEE.STD_LOGIC_1164.ALL;
-use IEEE.NUMERIC_STD.ALL;
-use ieee.std_logic_textio.all;
+use IEEE.NUMERIC_STD.ALL; use ieee.std_logic_textio.all;
 use std.textio.all;
 library work;
 use work.my_dem_pkg.all;
@@ -66,7 +65,7 @@ architecture rtl of p_tll is
 	signal Wx16 		: unsigned(15 downto 0):= (others=>'0');
 	signal mu_step 		: unsigned(15 downto 0):= (others=>'0');
 	signal underflow_hist 	: std_logic_vector(0 to N):="10101010101010101";
-	signal e_vld     	: std_logic_vector(0 to N-1):="0101010101010101";
+--	signal e_vld     	: std_logic_vector(0 to N-1):="0101010101010101";
 	signal diff			: unsigned_array_16(0 to N-1):=(others=>(others=>'0'));
 	signal mu 		    : unsigned_array_16(0 to N-1):=(others=>(others=>'0'));
 	signal one_minus_mu	: unsigned_array_16(0 to N-1):=(others=>(others=>'1'));
@@ -217,7 +216,8 @@ begin
 			if iq_vld_d(4) = '1' then
 				for kk in 0 to N-1 loop
 					-- Q19.12 + Q19.12 = Q20.12
-					if e_vld(kk) = '1' then
+				--	if e_vld(kk) = '1' then
+                    if underflow_hist(kk+1) = '1' and underflow_hist(kk) = '0' then
 						e_vec(kk) <= mulI(kk) + mulQ(kk);
 					else
 						e_vec(kk) <= (others=>'0');
@@ -385,86 +385,119 @@ begin
 			if rst_n = '0' then
 				CNT <= (others=>'0');
 			elsif iq_vld_d(11) = '1' then
+                underflow_hist(0) <= underflow_hist(16);
                 diff(0)  <= CNT ;
 				if CNT < Wx1 then
 					diff(1) <= CNT - Wx1 + ONE;
+                    underflow_hist(1) <= '1'; 
 				else
 					diff(1)  <= CNT - Wx1;
+                    underflow_hist(1) <= '0'; 
 				end if;
 				if CNT < Wx2 then
 					diff(2)  <= CNT - Wx2 + ONE ;
+                    underflow_hist(2) <= '1'; 
 				else
 					diff(2)  <= CNT - Wx2;
+                    underflow_hist(2) <= '0'; 
 				end if;
 				if CNT < Wx3 then
 					diff(3)  <= CNT - Wx3 + ONE ;
+                    underflow_hist(3) <= '1'; 
 				else
 					diff(3)  <= CNT - Wx3;
+                    underflow_hist(3) <= '0'; 
 				end if;
 				if CNT < Wx4 then
 					diff(4)  <= CNT - Wx4 + ONE  ;
+                    underflow_hist(4) <= '1'; 
 				else
 					diff(4)  <= CNT - Wx4 ;
+                    underflow_hist(4) <= '0'; 
 				end if;
 				if CNT < Wx5 then
 					diff(5)  <= CNT - Wx5 + ONE  ;
+                    underflow_hist(5) <= '1'; 
 				else
 					diff(5)  <= CNT - Wx5 ;
+                    underflow_hist(5) <= '0'; 
 				end if;
 				if CNT < Wx6 then
 					diff(6)  <= CNT - Wx6 + ONE  ;
+                    underflow_hist(6) <= '1'; 
 				else
 					diff(6)  <= CNT - Wx6 ;
+                    underflow_hist(6) <= '0'; 
 				end if;
 				if CNT < Wx7 then
 					diff(7)  <= CNT - Wx7 + ONE  ;
+                    underflow_hist(7) <= '1'; 
 				else
 					diff(7)  <= CNT - Wx7 ;
+                    underflow_hist(7) <= '0'; 
 				end if;
 				if CNT < Wx8 then
 					diff(8)  <= CNT - Wx8 + ONE  ;
+                    underflow_hist(8) <= '1'; 
 				else
 					diff(8)  <= CNT - Wx8 ;
+                    underflow_hist(8) <= '0'; 
 				end if;
 				if CNT < Wx9 then
 					diff(9)  <= CNT - Wx9 + ONE  ;
+                    underflow_hist(9) <= '1'; 
 				else
 					diff(9)  <= CNT - Wx9 ;
+                    underflow_hist(9) <= '0'; 
 				end if;
 				if CNT < Wx10 then
 					diff(10) <= CNT - Wx10 + ONE  ;
+                    underflow_hist(10) <= '1'; 
 				else
 					diff(10) <= CNT - Wx10 ;
+                    underflow_hist(10) <= '0'; 
 				end if;
 				if CNT < Wx11 then
 					diff(11) <= CNT - Wx11 + ONE  ;
+                    underflow_hist(11) <= '1'; 
 				else
 					diff(11) <= CNT - Wx11 ;
+                    underflow_hist(11) <= '0'; 
 				end if;
 				if CNT < Wx12 then
 					diff(12) <= CNT - Wx12 + ONE  ;
+                    underflow_hist(12) <= '1'; 
 				else
 					diff(12) <= CNT - Wx12 ;
+                    underflow_hist(12) <= '0'; 
 				end if;
 				if CNT < Wx13 then
 					diff(13) <= CNT - Wx13 + ONE  ;
+                    underflow_hist(13) <= '1'; 
 				else
 					diff(13) <= CNT - Wx13 ;
+                    underflow_hist(13) <= '0'; 
 				end if;
 				if CNT < Wx14 then
 					diff(14) <= CNT - Wx14 + ONE  ;
+                    underflow_hist(14) <= '1'; 
 				else
 					diff(14) <= CNT - Wx14 ;
+                    underflow_hist(14) <= '0'; 
 				end if;
 				if CNT < Wx15 then
 					diff(15) <= CNT - Wx15 + ONE  ;
+                    underflow_hist(15) <= '1'; 
 				else
 					diff(15) <= CNT - Wx15 ;
+                    underflow_hist(15) <= '0'; 
 				end if;
 				if CNT < Wx16 then
 					CNT <= CNT - Wx16 + ONE  ;
+                    underflow_hist(16) <= '1'; 
 				else
 					CNT <= CNT - Wx16;
+                    underflow_hist(16) <= '0'; 
 				end if;
             end if;
         end if;
@@ -483,14 +516,14 @@ begin
 				mu_cur <= (others=>'0');
 			else
                 if iq_vld_d(12) = '1' then
-                    underflow_hist(0) <= underflow_hist(N);
+                    -- underflow_hist(0) <= underflow_hist(N);
                     -- update mu when underflow_hist
                     for ii in 0 to N - 1 loop
-                        if diff(ii) < W then
-                            underflow_hist(ii+1) <= '1';
-                        else
-                            underflow_hist(ii+1) <= '0';
-                        end if;
+                       -- if diff(ii) < W then
+                       --     underflow_hist(ii+1) <= '1';
+                       -- else
+                       --     underflow_hist(ii+1) <= '0';
+                       -- end if;
                         -- calculate mu and 1-mu no matter underflow
                         -- unsigned 16 was extended to Q1.16 by adding a signed bit and an integer bit
 						--if diff(ii)(15)='1' then -->=0.5
@@ -527,11 +560,11 @@ begin
                             mu_val     := mu_tmp(jj);
                         end if;
                         mu(jj)       <= mu_val;
-                        if underflow_hist(jj+1) = '1' and underflow_hist(jj) = '0' then
-                            e_vld(jj) <= '1';
-                        else
-                            e_vld(jj) <= '0';
-                        end if;
+                       -- if underflow_hist(jj+1) = '1' and underflow_hist(jj) = '0' then
+                       --     e_vld(jj) <= '1';
+                       -- else
+                       --     e_vld(jj) <= '0';
+                       -- end if;
                     end loop;
                 end if;
                 -- store last valid mu
