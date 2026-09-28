@@ -49,6 +49,9 @@ architecture sim of tb_tb_p_tll is
 	signal cnt_div 		: unsigned(7 downto 0):=(others=>'0');
 	signal iq_vld  		: std_logic:='0';
 	signal iq_vld_d  	: std_logic:='0';
+    signal symb_out_en : std_logic:='0';
+    signal symb_out_i  : std_logic_vector(15 downto 0):=(others=>'0');
+    signal symb_out_q  : std_logic_vector(15 downto 0):=(others=>'0');
 
     -- File I/O
     file rec_r_i0 : text open read_mode  is "agc_i0.txt";
@@ -103,6 +106,21 @@ begin
 		symb_i 	=>	symb_i ,
 		symb_q 	=>	symb_q 
     );
+
+	process(sys_clk)
+	begin
+		if rising_edge(sys_clk) then
+            for ii in 0 to N-1 loop
+                if symb_en(ii) = '1' then
+                    symb_out_en <= '1';
+                    symb_out_i <= symb_i(ii);
+                    symb_out_q <= symb_q(ii);
+                else
+                    symb_out_en <= '0';
+                end if;
+            end loop;
+        end if;
+    end process;
 
 	process(sys_clk)
 	begin
