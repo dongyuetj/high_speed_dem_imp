@@ -156,6 +156,8 @@ architecture rtl of hs_dem is
 	signal symb_q 				: std_logic_array_16(0 to N-1):=(others=>(others=>'0'));
 	signal symb_i_t 			: std_logic_vector(7 downto 0):=(others=>'0');
 	signal symb_q_t 			: std_logic_vector(7 downto 0):=(others=>'0');
+	signal symb_i_tt 			: std_logic_vector(15 downto 0):=(others=>'0');
+	signal symb_q_tt 			: std_logic_vector(15 downto 0):=(others=>'0');
 	signal sync_symb_en 		: std_logic:='0';
 	signal sync_symb_en_d		: std_logic_vector(N-1 downto 0):=(others=>'0');
 	signal sync_symb_i 			: std_logic_array_8(0 to N-1):=(others=>(others=>'0'));
@@ -557,22 +559,26 @@ begin
 		end if;
 	end process;
 
-	u_agc: p_agc
-	generic map( N => N)
-	port map(
-			sys_clk			=> 	sys_clk,
-			aresetn 		=> 	rst_n_agc,
-			log_ref  		=> 	log_ref,
-			wave_in_valid 	=>  wave_in_valid,
-			wave_in_i 		=>  wave_in_i,	
-			wave_in_q		=>  wave_in_q,
-			wave_out_valid 	=> 	wave_out_valid,
-			wave_out_i 		=> 	wave_out_i,
-			wave_out_q 		=> 	wave_out_q,
-			power_out_o 	=> 	power_out,
-			exp_gain_o 		=> 	exp_gain,
-			agc_error 		=>  agc_error	
-		);
+--	u_agc: p_agc
+--	generic map( N => N)
+--	port map(
+--			sys_clk			=> 	sys_clk,
+--			aresetn 		=> 	rst_n_agc,
+--			log_ref  		=> 	log_ref,
+--			wave_in_valid 	=>  wave_in_valid,
+--			wave_in_i 		=>  wave_in_i,	
+--			wave_in_q		=>  wave_in_q,
+--			wave_out_valid 	=> 	wave_out_valid,
+--			wave_out_i 		=> 	wave_out_i,
+--			wave_out_q 		=> 	wave_out_q,
+--			power_out_o 	=> 	power_out,
+--			exp_gain_o 		=> 	exp_gain,
+--			agc_error 		=>  agc_error	
+--		);
+
+	wave_out_valid <=  wave_in_valid ;
+	wave_out_i <=	wave_in_i;
+	wave_out_q <=	wave_in_q;
 
 	process(sys_clk)
 	begin
@@ -669,6 +675,8 @@ begin
 					elsif symb_q(ii)(15) = '1' then
 						symb_q_t <=  x"80";
 					end if;
+                    symb_i_tt <=  symb_i(ii);
+                    symb_q_tt <=  symb_q(ii);
 				end if;
 			end loop;
 		end if;

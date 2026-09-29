@@ -30,9 +30,9 @@ end p_tll;
 architecture rtl of p_tll is
 
     -- Q3.16
-	constant ONE 		    : signed(7+15 downto 0):= to_signed(2**16,23);
-	constant ONE_unsigned 	: unsigned(16 downto 0):= "10000000000000000";
-	constant HALF_ONE 	    : signed(7+15 downto 0):= to_signed(2**15,23);
+	constant ONE 		    : signed(7+15+8 downto 0):= to_signed(2**24,31);
+	constant ONE_unsigned 	: unsigned(16+8 downto 0):= "1000000000000000000000000";
+	constant HALF_ONE 	    : signed(7+15+8 downto 0):= to_signed(2**23,31);
 	-- locked, BnTs = 0.0001
 	-- Q0.25
 	constant K1 		: signed(25 downto 0):= to_signed(-298137,26);
@@ -47,38 +47,38 @@ architecture rtl of p_tll is
 	signal iq_vld_d		: std_logic_vector(18 downto 0):=(others=>'0');
 	signal data_i_reg   : std_logic_array_8(0 to N):=(others=>(others=>'0'));
 	signal data_q_reg 	: std_logic_array_8(0 to N):=(others=>(others=>'0'));
-	signal CNT  		: signed(7+15 downto 0):= ONE;
-	signal CNT_NEXT  	: signed(7+15 downto 0):= (others=>'0');
-	signal W 			: signed(7+15 downto 0):= HALF_ONE;
-	signal Wx1 			: signed(7+15 downto 0):= (others=>'0');
-	signal Wx2 			: signed(7+15 downto 0):= (others=>'0');
-	signal Wx3 			: signed(7+15 downto 0):= (others=>'0');
-	signal Wx4 			: signed(7+15 downto 0):= (others=>'0');
-	signal Wx5 			: signed(7+15 downto 0):= (others=>'0');
-	signal Wx6 			: signed(7+15 downto 0):= (others=>'0');
-	signal Wx7 			: signed(7+15 downto 0):= (others=>'0');
-	signal Wx8 			: signed(7+15 downto 0):= (others=>'0');
-	signal Wx9 			: signed(7+15 downto 0):= (others=>'0');
-	signal Wx10 		: signed(7+15 downto 0):= (others=>'0');
-	signal Wx11 		: signed(7+15 downto 0):= (others=>'0');
-	signal Wx12 		: signed(7+15 downto 0):= (others=>'0');
-	signal Wx13 		: signed(7+15 downto 0):= (others=>'0');
-	signal Wx14 		: signed(7+15 downto 0):= (others=>'0');
-	signal Wx15 		: signed(7+15 downto 0):= (others=>'0');
-	signal Wx16 		: signed(7+15 downto 0):= (others=>'0');
+	signal CNT  		: signed(7+15+8 downto 0):= ONE;
+	signal CNT_NEXT  	: signed(7+15+8 downto 0):= (others=>'0');
+	signal W 			: signed(7+15+8 downto 0):= HALF_ONE;
+	signal Wx1 			: signed(7+15+8 downto 0):= (others=>'0');
+	signal Wx2 			: signed(7+15+8 downto 0):= (others=>'0');
+	signal Wx3 			: signed(7+15+8 downto 0):= (others=>'0');
+	signal Wx4 			: signed(7+15+8 downto 0):= (others=>'0');
+	signal Wx5 			: signed(7+15+8 downto 0):= (others=>'0');
+	signal Wx6 			: signed(7+15+8 downto 0):= (others=>'0');
+	signal Wx7 			: signed(7+15+8 downto 0):= (others=>'0');
+	signal Wx8 			: signed(7+15+8 downto 0):= (others=>'0');
+	signal Wx9 			: signed(7+15+8 downto 0):= (others=>'0');
+	signal Wx10 		: signed(7+15+8 downto 0):= (others=>'0');
+	signal Wx11 		: signed(7+15+8 downto 0):= (others=>'0');
+	signal Wx12 		: signed(7+15+8 downto 0):= (others=>'0');
+	signal Wx13 		: signed(7+15+8 downto 0):= (others=>'0');
+	signal Wx14 		: signed(7+15+8 downto 0):= (others=>'0');
+	signal Wx15 		: signed(7+15+8 downto 0):= (others=>'0');
+	signal Wx16 		: signed(7+15+8 downto 0):= (others=>'0');
 	signal underflow_hist 	: std_logic_vector(0 to N):="10101010101010101";
 	signal underflow_hist_reg 	: std_logic_vector(0 to N):="10101010101010101";
 --	signal e_vld     	: std_logic_vector(0 to N-1):="0101010101010101";
 --	signal mu_step 		: unsigned(15 downto 0):= (others=>'0');
-	signal diff			: signed_array_23(0 to N):=(others=>(others=>'0'));
-	signal mu 		    : unsigned_array_16(0 to N-1):=(others=>(others=>'0'));
-	signal one_minus_mu	: unsigned_array_17(0 to N-1):=(others=>"10000000000000000");
-	signal mu_tmp 		: unsigned_array_16(0 to N-1):=(others=>(others=>'0'));
+	signal diff			: signed_array_31(0 to N):=(others=>(others=>'0'));
+	signal mu 		    : unsigned_array_24(0 to N-1):=(others=>(others=>'0'));
+	signal one_minus_mu	: unsigned_array_25(0 to N-1):=(others=>"1000000000000000000000000");
+	signal mu_tmp 		: unsigned_array_24(0 to N-1):=(others=>(others=>'0'));
     signal mu_pre       : unsigned(15 downto 0):=(others=>'0');
-	signal one_minus_mu_ext	: unsigned_array_18(0 to N-1):=(others=>"010000000000000000");
-	signal mu_ext 		: unsigned_array_18(0 to N-1):=(others=>(others=>'0'));
-	signal one_minus_mu_tmp	: unsigned_array_16(0 to N-1):=(others=>(others=>'0'));
-	signal mu_cur       : unsigned(15 downto 0):=(others=>'0');
+	signal one_minus_mu_ext	: unsigned_array_26(0 to N-1):=(others=>"01000000000000000000000000");
+	signal mu_ext 		: unsigned_array_26(0 to N-1):=(others=>(others=>'0'));
+	signal one_minus_mu_tmp	: unsigned_array_24(0 to N-1):=(others=>(others=>'0'));
+	signal mu_cur       : unsigned(23 downto 0):=(others=>'0');
 	signal mulI0		: signed_array_26(0 to N-1):=(others=>(others=>'0'));
 	signal mulQ0		: signed_array_26(0 to N-1):=(others=>(others=>'0'));
 	signal mulI1		: signed_array_26(0 to N-1):=(others=>(others=>'0'));
@@ -100,7 +100,7 @@ architecture rtl of p_tll is
 	signal vp    	    : signed(62 downto 0):=(others=>'0');
 	signal vi			: signed(62 downto 0):=(others=>'0');
 	signal v			: signed(62 downto 0):=(others=>'0');
-	signal v_t			: signed(15+7 downto 0):=(others=>'0');
+	signal v_t			: signed(15+7+8 downto 0):=(others=>'0');
     signal cnt_symb          : unsigned(15 downto 0):=(others=>'0');
 	attribute MARK_DEBUG : string;
 	attribute MARK_DEBUG of mu_cur : signal is "TRUE";
@@ -139,8 +139,8 @@ begin
     end process;
 
 	gen2: for kk in 0 to N-1 generate
-		mu_ext(kk) <= resize(mu(kk),18);
-		one_minus_mu_ext(kk) <= resize(one_minus_mu(kk),18);
+		mu_ext(kk) <= resize(mu(kk),26);
+		one_minus_mu_ext(kk) <= resize(one_minus_mu(kk),26);
 	end generate gen2;
 
 	-- interpolation 
@@ -150,10 +150,10 @@ begin
             -- Q1.16 * Q7.0 = Q8.16, 2 signed bits + 8 integer bits + 16 fractional bits
             if iq_vld_d(0) = '1' then
                 for ii in 0 to N-1 loop
-                    mulI0(ii) <= signed(one_minus_mu_ext(ii)) * signed(data_i_reg(ii));
-                    mulQ0(ii) <= signed(one_minus_mu_ext(ii)) * signed(data_q_reg(ii));
-                    mulI1(ii) <= signed(mu_ext(ii)) * signed(data_i_reg(ii+1));
-                    mulQ1(ii) <= signed(mu_ext(ii)) * signed(data_q_reg(ii+1));
+                    mulI0(ii) <= signed(one_minus_mu_ext(ii)(25 downto 8)) * signed(data_i_reg(ii));
+                    mulQ0(ii) <= signed(one_minus_mu_ext(ii)(25 downto 8)) * signed(data_q_reg(ii));
+                    mulI1(ii) <= signed(mu_ext(ii)(25 downto 8)) * signed(data_i_reg(ii+1));
+                    mulQ1(ii) <= signed(mu_ext(ii)(25 downto 8)) * signed(data_q_reg(ii+1));
                 end loop;
             end if;
 			-- Q8.16 + Q8.16 = Q9.16
@@ -299,13 +299,13 @@ begin
 				v  <= (others=>'0');
 			else
 				if iq_vld_d(7) = '1' then
-					if abs(err(36 downto 15)) > 1000  then
-						vp <= (others=>'0');
-						vtmp <= (others=>'0');
-					else
+				--	if abs(err(36 downto 15)) > 1000  then
+				--		vp <= (others=>'0');
+				--		vtmp <= (others=>'0');
+				--	else
 						vp <= K1 * err; 
 						vtmp <= K2 * err;
-					end  if;
+				--	end  if;
 				end if;
 				--Q21.40 + Q21.40 = Q22.40
 				if iq_vld_d(8) = '1' then
@@ -339,7 +339,7 @@ begin
 	-- signed bits: [62]
     -- integer bits:	[61 60 59 58 57 56]
 	-- fraction bits: [55:40];
-    v_t <= v(62 downto 40);
+    v_t <= v(62 downto 40-8);
 
 	process(sys_clk)
 	begin
@@ -406,8 +406,8 @@ begin
                 diff(16) <= CNT - Wx16 ;
                 CNT <= CNT - Wx16 ;
 			elsif iq_vld_d(12) = '1' then
-                CNT(CNT'high downto 16) <= (others=>'0');
-                CNT_NEXT(15 downto 0) <= CNT(15 downto 0);
+                CNT(CNT'high downto 16+8) <= (others=>'0');
+                CNT_NEXT(15+8 downto 0) <= CNT(15+8 downto 0);
             end if;
         end if;
     end process;
@@ -439,7 +439,7 @@ begin
                     underflow_hist(0) <= underflow_hist(N);
                     for ii in 0 to N - 1 loop
                         --if diff(ii) < 0 then
-                        if unsigned(diff(ii)(15 downto 0)) < unsigned(W(15 downto 0)) then
+                        if unsigned(diff(ii)(15+8 downto 0)) < unsigned(W(15+8 downto 0)) then
                             underflow_hist(ii+1) <= '1';
                         else
                             underflow_hist(ii+1) <= '0';
@@ -447,7 +447,7 @@ begin
                     end loop;
                      -- update mu when underflow_hist
                     for ii in 0 to N - 1 loop
-                        mu_tmp(ii) <= unsigned(diff(ii)(14 downto 0)&'0');
+                        mu_tmp(ii) <= unsigned(diff(ii)(22 downto 0)&'0');
                         mu(ii) <= mu_cur;
                     end loop;
                 end if;
