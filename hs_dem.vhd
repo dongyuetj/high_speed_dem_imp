@@ -133,7 +133,7 @@ architecture rtl of hs_dem is
 			 );
 	end component;
 
-	signal log_ref				: std_logic_vector(31 downto 0):=x"408515B5";
+	signal log_ref				: std_logic_vector(31 downto 0):=x"40851592";
 	signal power_out 			: std_logic_vector(31 downto 0):=(others=>'0');
 	signal exp_gain 			: std_logic_vector(31 downto 0):=(others=>'0');
 	signal srst_fifo 			: std_logic:='0';
@@ -557,26 +557,22 @@ begin
 		end if;
 	end process;
 
---	u_agc: p_agc
---	generic map( N => N)
---	port map(
---			sys_clk			=> 	sys_clk,
---			aresetn 		=> 	rst_n_agc,
---			log_ref  		=> 	log_ref,
---			wave_in_valid 	=>  wave_in_valid,
---			wave_in_i 		=>  wave_in_i,	
---			wave_in_q		=>  wave_in_q,
---			wave_out_valid 	=> 	wave_out_valid,
---			wave_out_i 		=> 	wave_out_i,
---			wave_out_q 		=> 	wave_out_q,
---			power_out_o 	=> 	power_out,
---			exp_gain_o 		=> 	exp_gain,
---			agc_error 		=>  agc_error	
---		);
-
-    wave_out_valid 	<= wave_in_valid 		;
-    wave_out_i 		<= wave_in_i 			;
-    wave_out_q 		<= wave_in_q			;
+	u_agc: p_agc
+	generic map( N => N)
+	port map(
+			sys_clk			=> 	sys_clk,
+			aresetn 		=> 	rst_n_agc,
+			log_ref  		=> 	log_ref,
+			wave_in_valid 	=>  wave_in_valid,
+			wave_in_i 		=>  wave_in_i,	
+			wave_in_q		=>  wave_in_q,
+			wave_out_valid 	=> 	wave_out_valid,
+			wave_out_i 		=> 	wave_out_i,
+			wave_out_q 		=> 	wave_out_q,
+			power_out_o 	=> 	power_out,
+			exp_gain_o 		=> 	exp_gain,
+			agc_error 		=>  agc_error	
+		);
 
 	process(sys_clk)
 	begin
