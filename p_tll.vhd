@@ -67,6 +67,7 @@ architecture rtl of p_tll is
 	signal Wx15 		: signed(7+15 downto 0):= (others=>'0');
 	signal Wx16 		: signed(7+15 downto 0):= (others=>'0');
 	signal underflow_hist 	: std_logic_vector(0 to N):="10101010101010101";
+	signal underflow_hist_reg 	: std_logic_vector(0 to N):="10101010101010101";
 --	signal e_vld     	: std_logic_vector(0 to N-1):="0101010101010101";
 --	signal mu_step 		: unsigned(15 downto 0):= (others=>'0');
 	signal diff			: signed_array_23(0 to N):=(others=>(others=>'0'));
@@ -161,6 +162,7 @@ begin
                     xI(jj) <= mulI0(jj) + mulI1(jj); -- do not need to extention due to 2 signed bits
                     xQ(jj) <= mulQ0(jj) + mulQ1(jj);
                 end loop;
+                underflow_hist_reg <= underflow_hist;
             end if;
         end if;
     end process;
@@ -178,7 +180,7 @@ begin
 			symb_en <= (others => '0');
 			for i in 0 to N-1 loop
 				if iq_vld_d(2+i) = '1' then
-					if underflow_hist(i+1) = '1' then
+					if underflow_hist_reg(i+1) = '1' then
                         cnt_symb <= cnt_symb + 1;
 						symb_en(i) <= '1';
 						symb_i(i)  <= std_logic_vector(xI_t(i));
@@ -450,83 +452,85 @@ begin
                     end loop;
                 end if;
                 if iq_vld_d(13) = '1' then
-                    if underflow_hist(16) = '1' then
-                        for jj in 0 to 15 loop
-                            mu(jj) <= mu_tmp(jj);
-                        end loop;
-                    end if;
-                    if underflow_hist(15) = '1' then
-                        for jj in 0 to 14 loop
-                            mu(jj) <= mu_tmp(jj);
-                        end loop;
-                    end if;
-                    if underflow_hist(14) = '1' then
-                        for jj in 0 to 13 loop
-                            mu(jj) <= mu_tmp(jj);
-                        end loop;
-                    end if;
-                    if underflow_hist(13) = '1' then
-                        for jj in 0 to 12 loop
-                            mu(jj) <= mu_tmp(jj);
-                        end loop;
-                    end if;
-                    if underflow_hist(12) = '1' then
-                        for jj in 0 to 11 loop
-                            mu(jj) <= mu_tmp(jj);
-                        end loop;
-                    end if;
-                    if underflow_hist(11) = '1' then
-                        for jj in 0 to 10 loop
-                            mu(jj) <= mu_tmp(jj);
-                        end loop;
-                    end if;
-                    if underflow_hist(10) = '1' then
-                        for jj in 0 to 9 loop
-                            mu(jj) <= mu_tmp(jj);
-                        end loop;
-                    end if;
-                    if underflow_hist(9) = '1' then
-                        for jj in 0 to 8 loop
-                            mu(jj) <= mu_tmp(jj);
-                        end loop;
-                    end if;
-                    if underflow_hist(8) = '1' then
-                        for jj in 0 to 7 loop
-                            mu(jj) <= mu_tmp(jj);
-                        end loop;
-                    end if;
-                    if underflow_hist(7) = '1' then
-                        for jj in 0 to 6 loop
-                            mu(jj) <= mu_tmp(jj);
-                        end loop;
-                    end if;
-                    if underflow_hist(6) = '1' then
-                        for jj in 0 to 5 loop
-                            mu(jj) <= mu_tmp(jj);
-                        end loop;
-                    end if;
-                    if underflow_hist(5) = '1' then
-                        for jj in 0 to 4 loop
-                            mu(jj) <= mu_tmp(jj);
-                        end loop;
-                    end if;
-                    if underflow_hist(4) = '1' then
-                        for jj in 0 to 3 loop
-                            mu(jj) <= mu_tmp(jj);
-                        end loop;
-                    end if;
-                    if underflow_hist(3) = '1' then
-                        for jj in 0 to 2 loop
-                            mu(jj) <= mu_tmp(jj);
+                    if underflow_hist(1) = '1' then
+                        for ii in 0 to N-1 loop
+                            mu(ii) <= mu_tmp(ii);
                         end loop;
                     end if;
                     if underflow_hist(2) = '1' then
-                        for jj in 0 to 1 loop
-                            mu(jj) <= mu_tmp(jj);
+                        for ii in 1 to N-1 loop
+                            mu(ii) <= mu_tmp(ii);
                         end loop;
                     end if;
-                    if underflow_hist(1) = '1' then
-                            mu(0) <= mu_tmp(9);
+                    if underflow_hist(3) = '1' then
+                        for ii in 2 to N-1 loop
+                            mu(ii) <= mu_tmp(ii);
+                        end loop;
+                    end if;
+                    if underflow_hist(4) = '1' then
+                        for ii in 3 to N-1 loop
+                            mu(ii) <= mu_tmp(ii);
+                        end loop;
+                    end if;
+                    if underflow_hist(5) = '1' then
+                        for ii in 4 to N-1 loop
+                            mu(ii) <= mu_tmp(ii);
+                        end loop;
+                    end if;
+                    if underflow_hist(6) = '1' then
+                        for ii in 5 to N-1 loop
+                            mu(ii) <= mu_tmp(ii);
+                        end loop;
+                    end if;
+                    if underflow_hist(7) = '1' then
+                        for ii in 6 to N-1 loop
+                            mu(ii) <= mu_tmp(ii);
+                        end loop;
+                    end if;
+                    if underflow_hist(8) = '1' then
+                        for ii in 7 to N-1 loop
+                            mu(ii) <= mu_tmp(ii);
+                        end loop;
+                    end if;
+                    if underflow_hist(9) = '1' then
+                        for ii in 8 to N-1 loop
+                            mu(ii) <= mu_tmp(ii);
+                        end loop;
+                    end if;
+                    if underflow_hist(10) = '1' then
+                        for ii in 9 to N-1 loop
+                            mu(ii) <= mu_tmp(ii);
+                        end loop;
+                    end if;
+                    if underflow_hist(11) = '1' then
+                        for ii in 10 to N-1 loop
+                            mu(ii) <= mu_tmp(ii);
+                        end loop;
+                    end if;
+                    if underflow_hist(12) = '1' then
+                        for ii in 11 to N-1 loop
+                            mu(ii) <= mu_tmp(ii);
+                        end loop;
+                    end if;
+                    if underflow_hist(13) = '1' then
+                        for ii in 12 to N-1 loop
+                            mu(ii) <= mu_tmp(ii);
+                        end loop;
+                    end if;
+                    if underflow_hist(14) = '1' then
+                        for ii in 13 to N-1 loop
+                            mu(ii) <= mu_tmp(ii);
+                        end loop;
+                    end if;
+                    if underflow_hist(15) = '1' then
+                        for ii in 14 to N-1 loop
+                            mu(ii) <= mu_tmp(ii);
+                        end loop;
+                    end if;
+                    if underflow_hist(16) = '1' then
+                        for ii in 15 to N-1 loop
+                            mu(ii) <= mu_tmp(ii);
+                        end loop;
                     end if;
                 end if;
                 -- store last valid mu
