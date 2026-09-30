@@ -367,8 +367,30 @@ begin
 		end if;
 	end process;
 
+    -- slow track
+--	-- Q8.13/16 -> Q4.17
+--	-- K1 = (1/2^11+1/2^9) ; K1*Q4.17 = Q0.28 + Q0.26
+--	-- K2 = (1/2^11);	K2*Q4.17 = Q0.28
+--	process(sys_clk)
+--	begin
+--		if rising_edge(sys_clk) then
+--			if rst_n = '0' then
+--				vi <= (others=>'0');
+--				vp <= (others=>'0');
+--			else
+--				if pll_vld_d(9)  = '1' then
+--					-- Q0.28 + Q0.28 = Q1.28 , 32 bit means Q3.28, so it means there are two redundant integal bits.
+--					vp <= resize(err_total,32) + (resize(err_total,32) sll 2);
+--					-- Q1.28 + Q1.28 = Q3.28 (1 redundant integal bit)
+--					vi <= vi + resize(err_total,32);
+--				end if; 
+--			end if;
+--		end if;
+--	end process;
+
+    -- fast track
 	-- Q8.13/16 -> Q4.17
-	-- K1 = (1/2^11+1/2^9) ; K1*Q4.17 = Q0.28 + Q0.26
+	-- K1 = (1/2^8+1/2^6) ; K1*Q4.17 = Q0.25 + Q0.23
 	-- K2 = (1/2^11);	K2*Q4.17 = Q0.28
 	process(sys_clk)
 	begin
@@ -379,7 +401,7 @@ begin
 			else
 				if pll_vld_d(9)  = '1' then
 					-- Q0.28 + Q0.28 = Q1.28 , 32 bit means Q3.28, so it means there are two redundant integal bits.
-					vp <= resize(err_total,32) + (resize(err_total,32) sll 2);
+					vp <= (resize(err_total,32) sll 1) + (resize(err_total,32) sll 3);
 					-- Q1.28 + Q1.28 = Q3.28 (1 redundant integal bit)
 					vi <= vi + resize(err_total,32);
 				end if; 
