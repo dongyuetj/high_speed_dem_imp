@@ -34,7 +34,8 @@ architecture rtl of p_tll is
 	constant HALF_ONE 	        : signed(30 downto 0):= to_signed(2**23,31);
     --Q1.24
 	constant ONE_Q1P24 	        : signed(25 downto 0):= "01000000000000000000000000";
-    constant ONE_ALMOST         : signed(25 downto 0):= "01000000000000011010001110";
+    constant POS_ONE_ALMOST         : signed(25 downto 0):= "01000000000000011010001110";
+    constant NEG_ONE_ALMOST         : signed(25 downto 0):= "11111111111111100101110010";
 	-- locked, BnTs = 0.0001    
 	-- Q0.25
 	constant K1 		        : signed(25 downto 0):= to_signed(-298137,26);
@@ -453,9 +454,13 @@ begin
                         mu(ii) <= mu_cur;
                     end loop;
                 end if;
+                -- Q1.24
                 if iq_vld_d(12) = '1' then
                     for ii in 0 to N - 1 loop
-                        if mu_tmp(ii)  >= ONE_ALMOST then 
+                        if mu_tmp(ii) > POS_ONE_ALMOST then 
+                            mu_t(ii)(25 downto 24) <= "00";
+                            mu_t(ii)(23 downto 0) <= mu_tmp(ii)(23 downto 0);
+                        elsif mu_tmp(ii) < NEG_ONE_ALMOST then
                             mu_t(ii)(25 downto 24) <= "00";
                             mu_t(ii)(23 downto 0) <= mu_tmp(ii)(23 downto 0);
                         else
