@@ -99,7 +99,9 @@ begin
 		end if;
 	end process;
 
+    -- rotation
 	-- (Q7.0 + 1j * Q7.0) * (Q1.14 + 1j *Q1.14) = Q8.14 + Q8.14 = Q9.14
+    -- Q9.14 + Q9.14 = Q10.14
 	process(sys_clk)
 	begin
 		if rising_edge(sys_clk) then
@@ -126,12 +128,14 @@ begin
 		iq_sign(ii) <= std_logic_vector(phase_detection_imag(ii)(24 downto 24)) & std_logic_vector(phase_detection_real(ii)(24 downto 24));
 		cos_lut(ii) <= signed(douta(ii)(15 downto 0));
 		sin_lut(ii) <= signed(douta(ii)(31 downto 16));
+        -- Q10.14 -> Q10.0
 		min_num_int(ii) <= min_num(ii)(24 downto 14);
 		max_denom_int(ii) <= max_denom(ii)(24 downto 14);
 	end generate gen;
 
-	-- Q2.7
+    -- parallel roms (two roms per IP)
 	gen_nco: for ii in 0 to N/2-1 generate
+        -- cos,sin : Q1.14 & Q1.14 = 32bits
 		u_lut: COS_SIN_LUT
 		PORT map(
 					clka => sys_clk,
@@ -142,6 +146,7 @@ begin
 					doutb => douta(2*ii+1)
 				);
 
+	    -- angle : Q2.7
 		u_atan: ATAN_LUT
 		PORT map(
 					clka  => sys_clk,
@@ -154,6 +159,7 @@ begin
 
 	end generate gen_nco;
 
+    -- truncation for output
 	process(sys_clk)
 	begin
 		if rising_edge(sys_clk) then
@@ -180,7 +186,8 @@ begin
 		end if;
 	end process;
 
-	-- Q9.14 
+    -- prepare for calculation of atan
+	-- Q10.14 
 	process(sys_clk)
 	begin
 		if rising_edge(sys_clk) then
@@ -196,6 +203,7 @@ begin
 						lower_pos(ii) <= '0';
 					end if;
 					iq_sign_reg(ii) <= iq_sign(ii);
+                    -- gray code
 					case iq_sign(ii) is
 						when "00" => --  pi/4,1
 							phase_in(ii) <= PI_1_4_POS;
@@ -212,6 +220,9 @@ begin
 		end if;
 	end process;
 
+    -- Q10.0
+    -- make the denom to equal one almostly
+    -- num and denom are enlarged simutanneously, the quotient are the same
 	process(sys_clk)
 	begin
 		if rising_edge(sys_clk) then
@@ -241,6 +252,8 @@ begin
 		end if;
 	end process;
 
+    -- Q10.0 sll 7 = Q17.0 (18bits)
+    -- num equals the ratio when denom is almost 1
 	process(sys_clk)
 	begin
 		if rising_edge(sys_clk) then
@@ -270,6 +283,7 @@ begin
 		end if;
 	end process;
 
+    -- generate rom addr, large ratio is fixed to one val to minimize the ROM LUT
 	process(sys_clk)
 	begin
 		if rising_edge(sys_clk) then
@@ -287,9 +301,10 @@ begin
 		end if;
 	end process;
 
-	--pll_vld_d(5), wait atan rom
+	-- pll_vld_d(5), wait atan rom
 
-	--Q2.13 -> Q4.13
+    -- calculate phase_diff according to the axis quadrant
+	-- Q2.13 -> Q4.13 (two add/sub, enlarge two bits)
 	process(sys_clk)
 	begin
 		if rising_edge(sys_clk) then
@@ -327,6 +342,10 @@ begin
 		end if;
 	end process;
 
+    -- 8 -> 4 , Q4.13 -> Q5.13
+    -- 4 -> 2 , Q5.13 -> Q6.13
+    -- 2 -> 1 , Q5.13 -> Q7.13
+    -- Q7.13 + Q7.13 -> Q8.13
 	process(sys_clk)
 	begin
 		if rising_edge(sys_clk) then
@@ -348,8 +367,8 @@ begin
 		end if;
 	end process;
 
-	-- Q8.13 /16 -> 4.17
-	-- K1 = (1/2^11+1/2^9); K1*Q4.17 = Q0.28 + Q0.26
+	-- Q8.13/16 -> Q4.17
+	-- K1 = (1/2^11+1/2^9) ; K1*Q4.17 = Q0.28 + Q0.26
 	-- K2 = (1/2^11);	K2*Q4.17 = Q0.28
 	process(sys_clk)
 	begin
