@@ -205,13 +205,13 @@ begin
 					iq_sign_reg(ii) <= iq_sign(ii);
                     -- gray code
 					case iq_sign(ii) is
-						when "00" => --  pi/4,1
+						when "00" => -- ++ 
 							phase_in(ii) <= PI_1_4_POS;
-						when "01" => -- 3*pi/4,2
-							phase_in(ii) <= PI_3_4_POS;
-						when "10" => -- -pi/4,4
+						when "01" => -- +-
 							phase_in(ii) <= PI_1_4_NEG;
-						when "11" => -- -3*pi/4,3
+						when "10" => -- -+
+							phase_in(ii) <= PI_3_4_POS;
+						when "11" => -- --
 							phase_in(ii) <= PI_3_4_NEG;
 						when others => null;
 					end case;
@@ -311,25 +311,25 @@ begin
 			if pll_vld_d(6) = '1' then
 				for ii in 0 to N-1 loop
 					case iq_sign_reg(ii) is
-						when "00" => -- 1
+						when "00" => -- ++
 							if lower_pos(ii) = '1' then
 								phase_diff(ii) <= resize(signed(dout_atan(ii)),18) - resize(phase_in(ii),18);
 							else
 								phase_diff(ii) <= resize(PI_1_2_POS,18) - resize(signed(dout_atan(ii)),18) - resize(phase_in(ii),18);
 							end if;
-						when "01" => -- 2
-							if lower_pos(ii) = '1' then
-								phase_diff(ii) <= resize(PI_POS,18) - resize(signed(dout_atan(ii)),18) - resize(phase_in(ii),18);
-							else
-								phase_diff(ii) <= resize(PI_1_2_POS,18) + resize(signed(dout_atan(ii)),18) - resize(phase_in(ii),18);
-							end if;
-						when "10" => -- 4
+						when "01" => -- +-
 							if lower_pos(ii) = '1' then
 								phase_diff(ii) <= resize(-signed(dout_atan(ii)),18) - resize(phase_in(ii),18);
 							else
 								phase_diff(ii) <= resize(PI_1_2_NEG,18) + resize(signed(dout_atan(ii)),18) - resize(phase_in(ii),18);
 							end if;
-						when "11" => -- 3
+						when "10" => -- -+
+							if lower_pos(ii) = '1' then
+								phase_diff(ii) <= resize(PI_POS,18) - resize(signed(dout_atan(ii)),18) - resize(phase_in(ii),18);
+							else
+								phase_diff(ii) <= resize(PI_1_2_POS,18) + resize(signed(dout_atan(ii)),18) - resize(phase_in(ii),18);
+							end if;
+						when "11" => -- --
 							if lower_pos(ii) = '1' then
 								phase_diff(ii) <= resize(PI_NEG,18) + resize(signed(dout_atan(ii)),18) - resize(phase_in(ii),18);
 							else
