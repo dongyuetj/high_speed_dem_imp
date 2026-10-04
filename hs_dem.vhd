@@ -835,7 +835,7 @@ begin
 			sync_symb_en_d <= sync_symb_en_d(N-2 downto 0) & sync_symb_en ;
 			for ii in 0 to N-1 loop
 				sync_symb_i_reg(ii) <=  resize(signed(sync_symb_i(ii)),16);
-				sync_symb_q_reg(ii) <=  resize(-signed(sync_symb_q(ii)),16);
+				sync_symb_q_reg(ii) <=  resize(signed(sync_symb_q(ii)),16);
 			end loop;
 			dem_vld <= '0';
 			for jj in 0 to N-1 loop
@@ -843,8 +843,8 @@ begin
 					dem_vld <= '1';
 					dem_sym_i(15 downto 0) <= std_logic_vector(sync_symb_i_reg(jj) sll 6);
 					dem_sym_q(15 downto 0) <= std_logic_vector(sync_symb_q_reg(jj) sll 6);
-					dem_byte(0) <= sync_symb_i_reg(jj)(7);
-					dem_byte(1) <= (not sync_symb_q_reg(jj)(7));
+					dem_byte(1) <= sync_symb_i_reg(jj)(15);
+					dem_byte(0) <= sync_symb_q_reg(jj)(15);
 				end if;
 			end loop;
 		end if;
