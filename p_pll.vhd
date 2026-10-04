@@ -125,7 +125,7 @@ begin
 	gen: for ii in 0 to N-1 generate
 		-- Q2.13
 		phase_int_v_wrap_fix(ii) <= std_logic_vector(phase_int_v_wrap(ii)(31)&phase_int_v_wrap(ii)(29 downto 15));
-		iq_sign(ii) <= std_logic_vector(phase_detection_imag(ii)(24 downto 24)) & std_logic_vector(phase_detection_real(ii)(24 downto 24));
+		iq_sign(ii) <= std_logic_vector(phase_detection_real(ii)(24 downto 24)) & std_logic_vector(phase_detection_imag(ii)(24 downto 24));
 		cos_lut(ii) <= signed(douta(ii)(15 downto 0));
 		sin_lut(ii) <= signed(douta(ii)(31 downto 16));
         -- Q10.14 -> Q10.0
