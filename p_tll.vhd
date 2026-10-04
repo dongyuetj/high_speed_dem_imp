@@ -34,8 +34,10 @@ architecture rtl of p_tll is
 	constant HALF_ONE 	        : signed(30 downto 0):= to_signed(2**23,31);
     --Q1.24
 	constant ONE_Q1P24 	        : signed(25 downto 0):= "01000000000000000000000000";
-    constant POS_ONE_ALMOST         : signed(25 downto 0):= "01000000000000011010001110";
-    constant NEG_ONE_ALMOST         : signed(25 downto 0):= "11111111111111100101110010";
+    -- 1.0005*2^24
+    constant POS_ONE_ALMOST         : signed(25 downto 0):= "01000000000010000011000101";
+    -- -0.0005*2^24
+    constant NEG_ONE_ALMOST         : signed(25 downto 0):= "11111111111101111100111011";
 	-- locked, BnTs = 0.0001    
 	-- Q0.25
 	constant K1 		        : signed(25 downto 0):= to_signed(-298137,26);
