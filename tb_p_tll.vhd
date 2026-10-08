@@ -110,13 +110,12 @@ begin
 	process(sys_clk)
 	begin
 		if rising_edge(sys_clk) then
+            symb_out_en <= '0';
             for ii in 0 to N-1 loop
                 if symb_en(ii) = '1' then
                     symb_out_en <= '1';
                     symb_out_i <= symb_i(ii);
                     symb_out_q <= symb_q(ii);
-                else
-                    symb_out_en <= '0';
                 end if;
             end loop;
         end if;

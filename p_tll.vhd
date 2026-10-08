@@ -38,16 +38,16 @@ architecture rtl of p_tll is
     constant POS_ONE_ALMOST         : signed(25 downto 0):= "01000000000010000011000101";
     -- -0.0005*2^24
     constant NEG_ONE_ALMOST         : signed(25 downto 0):= "11111111111101111100111011";
-	-- locked, BnTs = 0.0001    
-	-- Q0.25
-	constant K1 		        : signed(25 downto 0):= to_signed(-298137,26);
-	-- Q0.25
-	constant K2 		        : signed(25 downto 0):= to_signed(-20,26);
---	-- catched, BnTs = 0.005
+--	-- locked, BnTs = 0.0001    
 --	-- Q0.25
---	constant K1 		: signed(25 downto 0):= to_signed(-14858231,26);
+--	constant K1 		        : signed(25 downto 0):= to_signed(-298137,26);
 --	-- Q0.25
---	constant K2 		: signed(25 downto 0):= to_signed(-49527,26);
+--	constant K2 		        : signed(25 downto 0):= to_signed(-20,26);
+	-- catched, BnTs = 0.001
+	-- Q0.25, K1 * 2^25
+	constant K1 		: signed(25 downto 0):= to_signed(-2979581,26);
+	-- Q0.25, K2 * 2^25
+	constant K2 		: signed(25 downto 0):= to_signed(-1986,26);
 	signal iq_vld_d		        : std_logic_vector(18 downto 0):=(others=>'0');
 	signal data_i_reg           : std_logic_array_8(0 to N):=(others=>(others=>'0'));
 	signal data_q_reg 	        : std_logic_array_8(0 to N):=(others=>(others=>'0'));
@@ -459,15 +459,17 @@ begin
                 -- Q1.24
                 if iq_vld_d(12) = '1' then
                     for ii in 0 to N - 1 loop
-                        if mu_tmp(ii) > POS_ONE_ALMOST then 
-                            mu_t(ii)(25 downto 24) <= "00";
-                            mu_t(ii)(23 downto 0) <= mu_tmp(ii)(23 downto 0);
-                        elsif mu_tmp(ii) < NEG_ONE_ALMOST then
-                            mu_t(ii)(25 downto 24) <= "00";
-                            mu_t(ii)(23 downto 0) <= mu_tmp(ii)(23 downto 0);
-                        else
-                            mu_t(ii) <= mu_tmp(ii);
-                        end if;
+                        mu_t(ii)(25 downto 24) <= "00";
+                        mu_t(ii)(23 downto 0) <= mu_tmp(ii)(23 downto 0);
+                        --if mu_tmp(ii) > POS_ONE_ALMOST then 
+                        --    mu_t(ii)(25 downto 24) <= "00";
+                        --    mu_t(ii)(23 downto 0) <= mu_tmp(ii)(23 downto 0);
+                        --elsif mu_tmp(ii) < NEG_ONE_ALMOST then
+                        --    mu_t(ii)(25 downto 24) <= "00";
+                        --    mu_t(ii)(23 downto 0) <= mu_tmp(ii)(23 downto 0);
+                        --else
+                        --    mu_t(ii) <= mu_tmp(ii);
+                        --end if;
                     end loop;
                 end if;
                 if iq_vld_d(13) = '1' then
