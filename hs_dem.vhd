@@ -843,7 +843,7 @@ begin
 					dem_vld <= '1';
 					dem_sym_i(15 downto 0) <= std_logic_vector(sync_symb_i_reg(jj) sll 6);
 					dem_sym_q(15 downto 0) <= std_logic_vector(sync_symb_q_reg(jj) sll 6);
-                    -- output as binary, not gray
+                    -- output as gray
                     if sync_symb_i_reg(jj)(15) = '0' and sync_symb_q_reg(jj)(15) = '0' then -- ++
                         dem_byte(1 downto 0) <= "00";
                     elsif sync_symb_i_reg(jj)(15) = '1' and sync_symb_q_reg(jj)(15) = '1' then -- --
