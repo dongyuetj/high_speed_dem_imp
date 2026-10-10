@@ -847,9 +847,9 @@ begin
                     if sync_symb_i_reg(jj)(15) = '0' and sync_symb_q_reg(jj)(15) = '0' then -- ++
                         dem_byte(1 downto 0) <= "00";
                     elsif sync_symb_i_reg(jj)(15) = '1' and sync_symb_q_reg(jj)(15) = '1' then -- --
-                        dem_byte(1 downto 0) <= "10";
-                    elsif sync_symb_i_reg(jj)(15) = '0' and sync_symb_q_reg(jj)(15) = '1' then -- +-
                         dem_byte(1 downto 0) <= "11";
+                    elsif sync_symb_i_reg(jj)(15) = '0' and sync_symb_q_reg(jj)(15) = '1' then -- +-
+                        dem_byte(1 downto 0) <= "10";
                     elsif sync_symb_i_reg(jj)(15) = '1' and sync_symb_q_reg(jj)(15) = '0' then -- -+
                         dem_byte(1 downto 0) <= "01";
                     end if;
