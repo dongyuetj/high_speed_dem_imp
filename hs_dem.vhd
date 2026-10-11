@@ -200,7 +200,7 @@ architecture rtl of hs_dem is
 	signal NOISE_POW			: signed(31 downto 0):=to_signed(32, 32);
 	signal AGC_ERR_EXP			: signed(7 downto 0):=to_signed(-6, 8);
 	signal TLL_DET_WIN_LEN 		: unsigned(9 downto 0):=to_unsigned(1023,10);
-	signal TLL_LOOP_ABS			: signed(31 downto 0):=to_signed(2048,32);
+	signal TLL_LOOP_ABS			: signed(31 downto 0):=to_signed(40960,32);
 	signal TLL_LOCKED_NUM		: unsigned(9 downto 0):=to_unsigned(848,10);
 
 	signal PLL_DET_WIN_LEN 		: unsigned(9 downto 0):=to_unsigned(1023,10);
@@ -300,6 +300,38 @@ begin
 				rst_n_tll <= '1';
 				rst_n_pll <= '1';
 			end if;
+            if (tll_loop_out_vld = '1') then
+                if tll_det_win = TLL_DET_WIN_LEN then
+                    tll_det_win <= (others=>'0'); 
+                    cnt_tll_locked <= (others=>'0'); 
+                    if (cnt_tll_locked >= TLL_LOCKED_NUM) then
+                        tll_locked <= '1';
+                    else
+                        tll_locked <= '0';
+                    end if;
+                else
+                    tll_det_win <= tll_det_win + 1;
+                    if (abs(signed(tll_loop_dout)) <= TLL_LOOP_ABS) then
+                        cnt_tll_locked <= cnt_tll_locked + 1;
+                    end if;
+                end if;
+            end if;
+            if (pll_loop_out_vld = '1') then
+                if pll_det_win = PLL_DET_WIN_LEN then
+                    pll_det_win <= (others=>'0'); 
+                    cnt_pll_locked <= (others=>'0'); 
+                    if (cnt_pll_locked >= PLL_LOCKED_NUM) then
+                        pll_locked <= '1';
+                    else
+                        pll_locked <= '0';
+                    end if;
+                else
+                    pll_det_win <= pll_det_win + 1;
+                    if (abs(signed(pll_loop_dout)) <= PLL_LOOP_ABS) then
+                        cnt_pll_locked <= cnt_pll_locked + 1;
+                    end if;
+                end if;
+            end if;
 		end if;
 	end process;
 
